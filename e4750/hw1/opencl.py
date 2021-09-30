@@ -4,8 +4,9 @@ The code in this file is part of the instructor-provided template for Assignment
 import pyopencl as cl
 import numpy as np
 import time
-# import pyopencl.array as array
+import pyopencl.array as array
 import matplotlib.pyplot as plt
+from pyopencl import Buffer, MemoryObject
 
 
 
