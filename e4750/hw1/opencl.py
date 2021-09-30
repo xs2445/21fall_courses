@@ -204,7 +204,7 @@ def plotting(time_array, time_buffer, time_numpy, L, title, savename):
     plt.plot(L,time_buffer,label='buffer')
     plt.plot(L,time_numpy,label='numpy')
     plt.semilogx()
-    # plt.semilogy()
+    plt.semilogy()
     plt.legend()
     plt.grid()
     plt.xlabel('Length of vectors')
@@ -221,17 +221,17 @@ def compare():
     time_numpy = np.load('./opencl/time_numpy.npy')
     L = np.load('./opencl/L.npy')
 
-    plotting(time_array_cpt, time_buffer_cpt, time_numpy, L, 'comparison of addtional function (with allocation)', 'with_allocation')
+    plotting(time_array_cpt, time_buffer_cpt, time_numpy, L, 'comparison of addtional function (with allocation, log_time)', 'with_allocation_logtime')
 
     time_array_alc = np.load('./opencl/time_array_alc.npy')
     time_buffer_alc = np.load('./opencl/time_buffer_alc.npy')
-    plotting(time_array_alc, time_buffer_alc, time_numpy, L, 'comparison of addtional function (only computing)', 'computing')
+    plotting(time_array_alc, time_buffer_alc, time_numpy, L, 'comparison of addtional function (only computing, logtime)', 'computing_logtime')
 
     time_array_delta = time_array_alc - time_array_cpt
     time_buffer_delta = time_buffer_alc - time_buffer_cpt
     time_numpy_delta = time_numpy - time_numpy
 
-    plotting(time_array_delta, time_buffer_delta, time_numpy_delta, L, 'comparison of addtional function (only allocation)', 'only_allcation')
+    plotting(time_array_delta, time_buffer_delta, time_numpy_delta, L, 'comparison of addtional function (only allocation, logtime)', 'only_allcation_logtime')
 
 
 def main():
