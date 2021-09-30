@@ -4,7 +4,7 @@ The code in this file is part of the instructor-provided template for Assignment
 import pyopencl as cl
 import numpy as np
 import time
-import pyopencl.array
+# import pyopencl.array as array
 import matplotlib.pyplot as plt
 
 
@@ -95,7 +95,7 @@ class clModule:
             # start to record
         time_start = time.time()
             # make space in host for result
-        c = np.empty(length).astype(np.float32)
+        c = np.empty_like(a)
             # make space for input arrays in device, and copy from host
         a_d = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=a)
         b_d = cl.Buffer(self.ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=b)
@@ -134,6 +134,7 @@ class clModule:
         end = time.time()
 
         return c, end - start
+
 
 
 
@@ -180,52 +181,110 @@ def average_time(method_name, N=1024, iteration=10):
         print('No such method name!')
 
 
-def plotting(time_array, time_buffer, time_numpy, L):
-    plt.figure()
-    plt.plot(L,time_array,label='array')
-    plt.plot(L,time_buffer,label='buffer')
-    plt.plot(L,time_numpy,label='numpy')
-    plt.semilogx()
-    plt.semilogy()
-    plt.legend()
-    plt.grid()
-    plt.xlabel('Length of vectors')
-    plt.ylabel('Processing Time (ms)')
-    plt.title('comparison of addtional function')
-    plt.show()
-
-
-if __name__ == "__main__":
-    # Define the number of iterations and starting lengths of vectors
-    N = 1000000
+def record():
     iteration = 1
-    # a = np.random.rand(N).astype(np.float32)
-    # b = np.random.rand(N).astype(np.float32)
-    # print(a,b)
-
-
-    # Create an instance of the clModule class
-    # clop = clModule()
-    # c = clop.deviceAdd(a,b,N)
-    # print(c)
-
-    # Perform addition tests for increasing lengths of vectors
-    # L = 10, 100, 1000 ..., (You can use np.random.randn to generate two vectors)
     L = []
     for i in range(8): L.append(10**(i+1))
     time_array = []
     time_buffer = []
     time_numpy = []
     for l in L:
-        time_array.append(1000*average_time('device', N=l, iteration=iteration))
-        time_buffer.append(1000*average_time('buffer', N=l, iteration=iteration))
-        time_numpy.append(1000*average_time('numpy', N=l, iteration=iteration))
+        time_array.append(average_time('device', N=l, iteration=iteration))
+        time_buffer.append(average_time('buffer', N=l, iteration=iteration))
+        time_numpy.append(average_time('numpy', N=l, iteration=iteration))
+    np.save('opencl/time_array_cpt.npy', time_array) 
+    np.save('./opencl/time_buffer_cpt.npy', time_buffer) 
+    np.save('./opencl/time_numpy.npy', time_numpy) 
+    np.save('./opencl/L.npy', L)
 
+
+def plotting(time_array, time_buffer, time_numpy, L, title, savename):
+    plt.figure()
+    plt.plot(L,time_array,label='array')
+    plt.plot(L,time_buffer,label='buffer')
+    plt.plot(L,time_numpy,label='numpy')
+    plt.semilogx()
+    # plt.semilogy()
+    plt.legend()
+    plt.grid()
+    plt.xlabel('Length of vectors')
+    plt.ylabel('Processing Time (s)')
+    plt.title(title)
+    # plt.show()
+    plt.savefig('./opencl/'+savename+'.png')
+
+
+def compare():
+
+    time_array_cpt = np.load('./opencl/time_array_cpt.npy')
+    time_buffer_cpt = np.load('./opencl/time_buffer_cpt.npy')
+    time_numpy = np.load('./opencl/time_numpy.npy')
+    L = np.load('./opencl/L.npy')
+
+    plotting(time_array_cpt, time_buffer_cpt, time_numpy, L, 'comparison of addtional function (with allocation)', 'with_allocation')
+
+    time_array_alc = np.load('./opencl/time_array_alc.npy')
+    time_buffer_alc = np.load('./opencl/time_buffer_alc.npy')
+    plotting(time_array_alc, time_buffer_alc, time_numpy, L, 'comparison of addtional function (only computing)', 'computing')
+
+    time_array_delta = time_array_alc - time_array_cpt
+    time_buffer_delta = time_buffer_alc - time_buffer_cpt
+    time_numpy_delta = time_numpy - time_numpy
+
+    plotting(time_array_delta, time_buffer_delta, time_numpy_delta, L, 'comparison of addtional function (only allocation)', 'only_allcation')
+
+
+def main():
+    # Define the number of iterations and starting lengths of vectors
+    N = 10**5
+    iteration = 1
+    a = np.random.rand(N).astype(np.float32)
+    b = np.random.rand(N).astype(np.float32)
+
+
+    # Create an instance of the clModule class
+    clop = clModule()
+    c = clop.deviceAdd(a,b,N)
+
+    # Perform addition tests for increasing lengths of vectors
+    # L = 10, 100, 1000 ..., (You can use np.random.randn to generate two vectors)
+    L = []
+    for i in range(8): L.append(10**(i+1))
+    # L = [1, 2, 3, 4, 5]
+    time_array = []
+    time_buffer = []
+    time_numpy = []
+    c_delta = []
+    for l in L:
+        # print(l)
+        c_delta_l = 0
+        t_array_l = 0
+        t_buffer_l = 0
+        t_np_l = 0
+        a = np.random.rand(l).astype(np.float32)
+        b = np.random.rand(l).astype(np.float32)
+        for i in range(iteration):
+            c_array_temp, t_array_temp = clop.deviceAdd(a,b,l)
+            # print(c_array_temp)
+            c_buffer_temp, t_buffer_temp = clop.bufferAdd(a,b,l)
+            # print(c_buffer_temp)
+            c_np_temp, t_np_temp = clop.numpyAdd(a,b,l)
+            # print(c_np_temp)
+            c_delta_l += (2*c_array_temp-c_buffer_temp-c_np_temp).sum()
+            # print(c_delta_l)
+            t_array_l += t_array_temp
+            t_buffer_l += t_buffer_temp
+            t_np_l += t_np_temp
+        c_delta.append(c_delta_l/iteration/l)
+        time_array.append(t_array_l/iteration)
+        time_buffer.append(t_buffer_l/iteration)
+        time_numpy.append(t_np_l/iteration)
     # Compare outputs.
-
+    print(c_delta)
     # Plot the compute times
-    plotting(time_array, time_buffer, time_numpy, L)
+    plotting(time_array, time_buffer, time_numpy, L, 'comparison of addtional function (with allocation)', 'instance')
 
 
-
-
+if __name__ == "__main__":
+    # record()
+    compare()
