@@ -334,7 +334,7 @@ def plotting(time_explicit, time_implicit, time_gpuarynp, time_gpuary, time_host
     plt.plot(L,time_gpuary,label='gpuary')
     plt.plot(L,time_host,label='host')
     plt.semilogx()
-    # plt.semilogy()
+    plt.semilogy()
     plt.legend()
     plt.grid()
     plt.xlabel('Length of vectors')
@@ -449,9 +449,9 @@ def compare():
 
     L = np.load('./cuda/L.npy')
 
-    plotting(time_explicit_alc,time_implicit_alc,time_gpuarynp,time_gpuary_alc,time_host, L, 'comparison of addtional function (with allocation)', 'with_allocation')
+    plotting(time_explicit_alc,time_implicit_alc,time_gpuarynp,time_gpuary_alc,time_host, L, 'comparison of addtional function (with allocation, log time)', 'with_allocation_logtime')
 
-    plotting(time_explicit_cpt,time_implicit_cpt,time_gpuarynp,time_gpuary_cpt,time_host, L, 'comparison of addtional function (only computing)', 'computing')
+    plotting(time_explicit_cpt,time_implicit_cpt,time_gpuarynp,time_gpuary_cpt,time_host, L, 'comparison of addtional function (only computing, log time)', 'computing_logtime')
 
     time_explicit_delta = time_explicit_alc-time_explicit_cpt
     time_implicit_delta = time_implicit_alc-time_implicit_cpt
@@ -459,7 +459,7 @@ def compare():
     time_gpuary_delta = time_gpuary_alc-time_gpuary_cpt
     time_host_delta = time_host-time_host
 
-    plotting(time_explicit_delta,time_implicit_delta,time_gpuarynp_delta,time_gpuary_delta,time_host_delta, L, 'comparison of addtional function (only allocation)', 'only_allocation')
+    plotting(time_explicit_delta,time_implicit_delta,time_gpuarynp_delta,time_gpuary_delta,time_host_delta, L, 'comparison of addtional function (only allocation, log time)', 'only_allocation_logtime')
 
 
 
