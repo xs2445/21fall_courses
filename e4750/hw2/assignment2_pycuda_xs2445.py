@@ -100,7 +100,7 @@ class cudaCipher:
         decrypted = np.ndarray.tolist(decrypted)
         # print(type(decrypted))
 
-        return decrypted, time_alc
+        return decrypted, time_cpt
     
     def pyCipher(self, sentence):
         """
@@ -127,7 +127,7 @@ class cudaCipher:
             else:
                 decrypted += chr(asc)
         # print(type(decrypted))
-        return decrypted, time.time()-start
+        return decrypted, (time.time()-start)*1e3
 
 
 
