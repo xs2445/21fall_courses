@@ -133,7 +133,7 @@ class cudaCipher:
 
 def main():
     # Main code
-    # create a instance of cudaCipher
+    # create an instance of cudaCipher
     cipher = cudaCipher()
 
     # Open text file to be deciphered.
