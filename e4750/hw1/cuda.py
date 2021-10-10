@@ -1,3 +1,16 @@
+#!/usr/bin/env python
+
+"""
+.
+.
+.
+Python Code
+.
+.
+.
+"""
+
+
 """
 The code in this file is part of the instructor-provided template for Assignment-1, task-2, Fall 2021. 
 """
@@ -12,6 +25,7 @@ import math
 import time
 import matplotlib.pyplot as plt
 
+cuda.init()
 
 class deviceAdd:
     def __init__(self):
