@@ -20,7 +20,7 @@ class cudaCipher:
         # Quick lambda function to calculate grid dimensions
 
         # define block and grid dimensions
-        self.blocksize = 256
+        self.blocksize = 1024
         self.BlockDim = (self.blocksize,1,1)
         # self.GridDim = (math.ceil(self.length/256),1,1)
         
@@ -100,7 +100,7 @@ class cudaCipher:
         decrypted = np.ndarray.tolist(decrypted)
         # print(type(decrypted))
 
-        return decrypted, time_alc
+        return decrypted, time_cpt
     
     def pyCipher(self, sentence):
         """
@@ -197,11 +197,11 @@ def main():
         plt.scatter(range(len(decrypted_cuda)), tp, label='vanilla python')
         plt.legend()
         plt.grid()
-        plt.title('PyCUDA, Comparison of processing time (including memory allocation)')
+        plt.title('PyCUDA, Comparison of processing time (excluding memory allocation)')
         plt.xlabel('Sentences')
         plt.ylabel('Processing Time (ms)')
         # plt.show()
-        plt.savefig('comparison_cuda_alc.jpg')
+        plt.savefig('comparison_cuda_cpt.jpg')
 
 
 if __name__ == '__main__':
