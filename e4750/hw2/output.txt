@@ -1,0 +1,30 @@
+==PROF== Connected to process 16398 (/usr/bin/python3.6)
+==PROF== Profiling "Decrypt" - 1: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 2: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 3: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 4: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 5: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 6: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 7: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 8: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 9: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 10: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 11: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 12: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 13: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 14: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 15: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 16: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 17: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 18: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 19: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 20: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 21: 0%....50%....100% - 13 passes
+==PROF== Profiling "Decrypt" - 22: 0%....50%....100%CUDA output cracked in  223.82308613170278  milliseconds per sentence.
+Python output cracked in  0.13456561348655008  milliseconds per sentence.
+Checkpoint: Do python and kernel decryption match? Checking...
+Checkpoint passed!
+Writing decrypted text to file...
+ - 13 passes
+==PROF== Disconnected from process 16398
+==PROF== Report: metrics.nsight-cuprof-report

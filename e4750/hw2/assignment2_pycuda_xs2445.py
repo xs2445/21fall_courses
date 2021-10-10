@@ -1,3 +1,15 @@
+#!/usr/bin/env python
+
+"""
+.
+.
+.
+Python Code
+.
+.
+.
+"""
+
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
 import pycuda.driver as cuda
@@ -18,12 +30,7 @@ class cudaCipher:
         # blocksize or gridsize calculations, you may define them
         # here as lambda functions. 
         # Quick lambda function to calculate grid dimensions
-
-        # define block and grid dimensions
-        self.blocksize = 1024
-        self.BlockDim = (self.blocksize,1,1)
-        # self.GridDim = (math.ceil(self.length/256),1,1)
-        
+       
         
         # kernel code wrapper
         self.kernelwrapper = """
@@ -45,6 +52,12 @@ class cudaCipher:
         # of this class is made.
         self.mod = SourceModule(self.kernelwrapper)
     
+    # define block and grid dimensions
+    def getBlockGridDim(self, length, blocksize=1024):
+        BlockDim = (blocksize,1,1)
+        GridDim = ((length//blocksize)+1,1,1)
+        return BlockDim, GridDim 
+
     def devCipher(self, sentence):
         """
         Function to perform on-device parallel ROT-13 encrypt/decrypt
@@ -66,7 +79,7 @@ class cudaCipher:
         # print(type(sentence))
         length = len(sentence)*sys.getsizeof(sentence)
         # print(length)
-        GridDim = (math.ceil(length/self.blocksize),1,1)
+        BlockDim, GridDim = self.getBlockGridDim(length)
 
         # Device memory allocation for input and output array(s)
             # convert string into np.chararaay
@@ -81,7 +94,7 @@ class cudaCipher:
         
         # Record execution time and execute operation.
         start_cpt.record()
-        func_dcp(sentence_d, decrypted_d, np.int32(length), block=self.BlockDim, grid=GridDim)
+        func_dcp(sentence_d, decrypted_d, np.int32(length), block=BlockDim, grid=GridDim)
         end.record()
         
         # Wait for the event to complete
@@ -100,7 +113,7 @@ class cudaCipher:
         decrypted = np.ndarray.tolist(decrypted)
         # print(type(decrypted))
 
-        return decrypted, time_cpt
+        return decrypted[0], time_cpt
     
     def pyCipher(self, sentence):
         """
@@ -131,7 +144,8 @@ class cudaCipher:
 
 
 
-def main():
+# def main():
+if __name__ == '__main__':
     # Main code
     # create an instance of cudaCipher
     cipher = cudaCipher()
@@ -159,12 +173,6 @@ def main():
         tp.append(temp_tp)
 
     # post process the string(s) if required
-    decrypted_cuda = []
-    for sentence in decrypted_c:
-        for i in sentence:
-            a = i
-        decrypted_cuda.append(a)
-
     tc = np.array(tc)
     tp = np.array(tp)
 
@@ -175,11 +183,11 @@ def main():
     # check if the results match
     try:
         print("Checkpoint: Do python and kernel decryption match? Checking...")
-        for i in range(len(decrypted_cuda)):
+        for i in range(len(decrypted_c)):
             # print(decrypted_cuda[i], decrypted_p[i])
-            decrypted_cuda[i] += '. '
+            decrypted_c[i] += '. '
             decrypted_p[i] += '. '
-            assert decrypted_cuda[i] == decrypted_p[i]
+            assert decrypted_c[i] == decrypted_p[i]
     # dump bad output to file for debugging
     except AssertionError:
         print('Checkpoint failed: Python and CUDA kernel decryption do not match. Try Again!')
@@ -189,12 +197,12 @@ def main():
         print("Writing decrypted text to file...")
         # Write cuda output to file
         decrypted_text = open('decrypted_text.txt', 'w')
-        decrypted_text.write(''.join(decrypted_cuda))
+        decrypted_text.write(''.join(decrypted_c))
         decrypted_text.close()
         # Dot plot the  per-sentence execution times
         plt.figure()
-        plt.scatter(range(len(decrypted_cuda)), tc, label='pycuda')
-        plt.scatter(range(len(decrypted_cuda)), tp, label='vanilla python')
+        plt.scatter(range(len(decrypted_c)), tc, label='pycuda')
+        plt.scatter(range(len(decrypted_c)), tp, label='vanilla python')
         plt.legend()
         plt.grid()
         plt.title('PyCUDA, Comparison of processing time (excluding memory allocation)')
@@ -204,5 +212,5 @@ def main():
         plt.savefig('comparison_cuda_cpt.jpg')
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
