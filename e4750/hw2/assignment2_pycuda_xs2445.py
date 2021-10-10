@@ -86,8 +86,8 @@ class cudaCipher:
         
         # Wait for the event to complete
         end.synchronize()
-        time_alc = start_alc.time_till(end)
         time_cpt = start_cpt.time_till(end)
+        time_alc = start_alc.time_till(end)
 
         # Fetch result from device to host
         decrypted = decrypted_d.get()
@@ -100,7 +100,7 @@ class cudaCipher:
         decrypted = np.ndarray.tolist(decrypted)
         # print(type(decrypted))
 
-        return decrypted, time_cpt
+        return decrypted, time_alc
     
     def pyCipher(self, sentence):
         """
@@ -201,7 +201,7 @@ def main():
         plt.xlabel('Sentences')
         plt.ylabel('Processing Time (ms)')
         # plt.show()
-        plt.savefig('comparison_cuda.jpg')
+        plt.savefig('comparison_cuda_alc.jpg')
 
 
 if __name__ == '__main__':
