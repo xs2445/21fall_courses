@@ -12,7 +12,7 @@ def sigmoid(x):
     #                          START OF YOUR CODE                               #
     #############################################################################
 
-    print("./utils/classifiers/logistic_regression.sigmoid() not implemented!") # delete me
+    h = 1/(1+np.exp(-x))
     
     #############################################################################
     #                          END OF YOUR CODE                                 #
@@ -54,7 +54,28 @@ def logistic_regression_loss_naive(W, X, y, reg):
     #                     START OF YOUR CODE                  #
     #############################################################################
     
-    print("./utils/classifiers/logistic_regression.logistic_regression_loss_naive() not implemented!") # delete me
+    # For binary classification, there are two classes, the probability for each 
+    # classes is p and 1-p. So the W has two coloums. After optimization, 
+    # sigmoid(W.t*x) have 2 colomns as well, representing the probability of y=1 
+    # and y=0 wchich is [[p],[1-p]].
+
+    # Here, for simplicity, let w be 1 dimensional array, which means C = 1. 
+    # Then we only need to calculate the derivative of L wrt w when y=1.
+    
+    # for every sample Xi in X
+    for i in range(X.shape[0]):
+        temp_x = X[i,:].reshape(-1,1)
+        temp_sig = sigmoid(np.dot(np.transpose(W), temp_x))
+        # the loss for this iteration
+        loss +=  -1*(y[i]*np.log(temp_sig)+(1-y[i])*np.log(1-temp_sig))
+        # since here we only have one class which is y = 1, don't need to calculate
+        # for every classes
+        dW += (temp_sig-y[i])*temp_x
+    
+    loss /= X.shape[0] 
+    loss += reg*np.linalg.norm(W,ord=2)
+    dW += 2*reg*W
+        
     
     #############################################################################
     #                     END OF YOUR CODE                   #
@@ -87,7 +108,10 @@ def logistic_regression_loss_vectorized(W, X, y, reg):
     #                          START OF YOUR CODE                               #
     #############################################################################
     
-    print("./utils/classifiers/logistic_regression.logistic_regression_loss_vectorized() not implemented!") # delete me
+    sig = sigmoid(np.dot(X,W))
+
+    loss = reg*np.linalg.norm(W,2) - (np.dot(np.transpose(y),np.log(sig))+np.dot(np.transpose(1-y),1-sig))/X.shape[0]
+    dW = np.dot(np.transpose(X), sig-y)
     
     #############################################################################
     #                          END OF YOUR CODE                                 #
