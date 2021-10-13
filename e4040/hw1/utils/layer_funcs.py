@@ -26,8 +26,10 @@ def affine_forward(x, w, b):
     #                   START OF YOUR CODE                                     #
     ############################################################################
 
-    print('./utls/layer_funcs.affine_forward() not implemented!') # delete me
-    
+    # print(b.shape)
+    out = x.dot(w)+b.reshape(-1)
+    # print(out.shape)
+
     ############################################################################
     #                    END OF YOUR CODE                                      #
     ############################################################################
@@ -57,8 +59,15 @@ def affine_backward(dout, x, w, b):
     #                   START OF YOUR CODE                                     #
     ############################################################################
 
-    print('./utls/layer_funcs.affine_backward() not implemented!') # delete me
-    
+
+    # df_dx = np.tile(np.sum(w,axis=0),(x.shape[0],1))
+    # df_dw = np.tile(np.sum(x,axis=1).T,(1,w.shape[1]))
+    # df_db = np.ones_like(b)
+
+    dx = dout.dot(w.T)
+    dw = x.T.dot(dout)
+    db = dout.mean(axis=1)
+
     ############################################################################
     #                    END OF YOUR CODE                                      #
     ############################################################################
