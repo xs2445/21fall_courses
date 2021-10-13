@@ -53,14 +53,18 @@ class TwoLayerNet(object):
         # TODO: Feedforward                               #
         ###################################################
         
-        print('./utils/classifiers/twolayernet.TwoLayerNet.loss() not implemented!') # delete me
+        out1_dense = self.layer1.feedforward(X)
+        out2_affine = self.layer2.feedforward(out_dense1)
+        loss, dL_dout2= softmax_loss(out2_affine,y)
+        
         
         ###################################################
         # TODO: Backpropogation,here is just one dense    #
         # layer, it should be pretty easy                 #
         ###################################################      
         
-        print('./utils/classifiers/twolayernet.TwoLayerNet.loss() not implemented!') # delete me
+        
+        
         
         ###################################################
         #            END OF YOUR CODE                     #

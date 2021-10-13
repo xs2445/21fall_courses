@@ -124,8 +124,6 @@ def relu_backward(dout, x):
     drelu_dx = np.asarray(x)
     drelu_dx[drelu_dx>=0]=1
     drelu_dx[drelu_dx<0]=0
-    # print(drelu_dx.shape)
-    # print(dout.shape)
     dx = dout*drelu_dx
     
     ############################################################################
