@@ -5,9 +5,10 @@ from numpy.ma.extras import compress_cols
 
 
 def softmax(f):
-      # to make the result numerical stale
-      f -= np.max(f,axis=0)
-      return np.exp(f)/np.sum(np.exp(f),axis=0)
+    # to make the result numerical stale
+    f -= np.max(f,axis=0)
+    return np.exp(f)/np.sum(np.exp(f),axis=0)
+
 
 def softmax_loss_naive(W, X, y, reg):
     """
@@ -93,15 +94,15 @@ def softmax_loss_vectorized(W, X, y, reg):
     
     # softmax function for all xi. shape: C*N
     softmat = softmax(np.dot(X,W).T)
+    
+    # one-hot y with shape N*C
+    y_onehot = np.eye(W.shape[1])[y]
 
     cross_entropy = np.zeros((W.shape[1],1))
 
-    cross_entropy = -np.sum(np.eye(W.shape[1])[y]*np.log(softmat).T,axis=0)
+    cross_entropy = -np.sum(y_onehot*np.log(softmat).T,axis=0)
 
     loss = np.sum(cross_entropy)/X.shape[0] + reg*np.sum(np.linalg.norm(W,ord=2,axis=0))
-
-    # one-hot y with shape N*C
-    y_onehot = np.eye(W.shape[1])[y]
 
     # X has shape N*D   D*N . N*C = D*C
     dW = -(X.T.dot(y_onehot-softmat.T)/X.shape[0]) + 2*reg*W
