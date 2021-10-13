@@ -72,7 +72,8 @@ class DenseLayer(FullyConnectedLayer):
         out_affine = affine_forward(X, W, b)   
         # print(out_affine)
         self.A = out_affine
-        out = relu_forward(out_affine)
+        out = relu_forward(out_affine).copy()
+        
 
         ################################################
         #           END OF YOUR CODE                   #
