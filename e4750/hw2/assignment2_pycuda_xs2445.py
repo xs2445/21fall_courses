@@ -70,7 +70,8 @@ class cudaCipher:
         # create cuda events to record the execution time
         start_alc = cuda.Event()
         start_cpt = cuda.Event()
-        end = cuda.Event()
+        end_cpt = cuda.Event()
+        end_alc = cuda.Event()
 
         # Get kernel function
         func_dcp = self.mod.get_function("Decrypt")
@@ -95,15 +96,17 @@ class cudaCipher:
         # Record execution time and execute operation.
         start_cpt.record()
         func_dcp(sentence_d, decrypted_d, np.int32(length), block=BlockDim, grid=GridDim)
-        end.record()
+        end_cpt.record()
         
         # Wait for the event to complete
         end.synchronize()
-        time_cpt = start_cpt.time_till(end)
-        time_alc = start_alc.time_till(end)
+        decrypted = decrypted_d.get()
+        end_alc.record()
+        time_cpt = start_cpt.time_till(end_cpt)
+        time_alc = start_alc.time_till(end_alc)
 
         # Fetch result from device to host
-        decrypted = decrypted_d.get()
+        # decrypted = decrypted_d.get()
         # Convert output array back to string
         # decrypted = decrypted.decode('utf-8')
         # decrypted = literal_eval(sentence)

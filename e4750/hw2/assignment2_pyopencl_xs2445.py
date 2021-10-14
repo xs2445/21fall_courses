@@ -77,18 +77,20 @@ class clCipher:
         # Hence, 1e-6 will provide the time in milliseconds, 
         # making your plots easier to read.
         event.wait()
+        decrypted_d.get()
         end = time.time()
         # print(decrypted_d)
 
         # Copy result to host memory
-        decrypted = decrypted_d.get()
+        # decrypted = decrypted_d.get()
         decrypted = np.ndarray.tolist(decrypted)
         # print(decrypted)
         # print(type(decrypted))
         time_event = event.profile.end-event.profile.start
 
-        return decrypted[0], time_event*1e-6
-        # return decrypted[0], (end-start_cpt)*1e3
+        #return decrypted[0], time_event*1e-6
+
+        return decrypted[0], (end-start_cpt)*1e3
 
 
     
@@ -187,7 +189,7 @@ def main():
         plt.xlabel('Sentences')
         plt.ylabel('Processing Time (ms)')
         # plt.show()
-        plt.savefig('comparison_cl.jpg')
+        plt.savefig('comparison_cl_alc.jpg')
 
 
 if __name__ == "__main__":
