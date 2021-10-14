@@ -66,7 +66,8 @@ def affine_backward(dout, x, w, b):
 
     dx = dout.dot(w.T)
     dw = x.T.dot(dout)
-    db = dout.sum(axis=1)
+    # db = dout.sum(axis=1)
+    db = dout.sum(axis=0)
 
     ############################################################################
     #                    END OF YOUR CODE                                      #

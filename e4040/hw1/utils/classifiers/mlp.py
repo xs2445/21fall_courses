@@ -54,21 +54,32 @@ class MLP(object):
         ####################################################
         # TODO: Feedforward                      #
         ####################################################
-        
-        print("./utils/classifiers/mpl.MPL.loss() not implemented!") # delete me
+
+        # for i in range(len(layers))
+        temp_x = X.copy()
+        for i in range(len(layers)):
+            temp_x = layers[i].feedforward(temp_x).copy()
+        loss, dout = softmax_loss(temp_x,y)
         
         ####################################################
         # TODO: Backpropogation                   #
         ####################################################
         
-        print("./utils/classifiers/mpl.MPL.loss() not implemented!") # delete me
+        temp_dout = dout.copy()
+        for i in range(len(layers)):
+            temp_dout = layers[-i-1].backward(temp_dout)
         
         ####################################################
         # TODO: Add L2 regularization               #
         ####################################################
         
-        print("./utils/classifiers/mpl.MPL.loss() not implemented!") # delete me
+        square_weights = 0.0
+        for i in range(len(layers)):
+            square_weights += np.sum(np.linalg.norm(layers[i].params[0]))
+        loss += 0.5*reg*square_weights
+        loss = loss.copy()
 
+        
         ####################################################
         #            END OF YOUR CODE            #
         ####################################################
@@ -87,8 +98,22 @@ class MLP(object):
         #           START OF YOUR CODE                     #
         ####################################################
         
-        print("./utils/classifiers/mpl.MPL.step() not implemented!") # delete me
-
+        params = []
+        grads = []
+        layers = self.layers
+        num_layers = len(layers)
+        
+        for i in range(num_layers):
+            params += layers[i].params
+            grads += layers[i].gradients
+        
+        # print(len(params),num_layers)
+        
+        for i, grad in enumerate(grads):
+            params[i] -= learning_rate*grad
+        
+        
+        
         ####################################################
         #            END OF YOUR CODE                      #
         ####################################################
@@ -119,8 +144,13 @@ class MLP(object):
         #           START OF YOUR CODE                     #
         ####################################################
         
-        print("./utils/classifiers/mpl.MPL.predict() not implemented!") # delete me
+        temp_x = X.copy()
+        for i in range(len(layers)):
+            temp_x = layers[i].feedforward(temp_x)
+        out_pred = softmax(temp_x)
+        predictions = np.argmax(out_pred, axis=1)
 
+        
         ####################################################
         #            END OF YOUR CODE                      #
         ####################################################

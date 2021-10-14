@@ -66,7 +66,8 @@ def affine_backward(dout, x, w, b):
 
     dx = dout.dot(w.T)
     dw = x.T.dot(dout)
-    db = dout.sum(axis=1)
+    # db = dout.sum(axis=1)
+    db = dout.sum(axis=0)
 
     ############################################################################
     #                    END OF YOUR CODE                                      #
@@ -124,8 +125,6 @@ def relu_backward(dout, x):
     drelu_dx = np.asarray(x)
     drelu_dx[drelu_dx>=0]=1
     drelu_dx[drelu_dx<0]=0
-    # print(drelu_dx.shape)
-    # print(dout.shape)
     dx = dout*drelu_dx
     
     ############################################################################
