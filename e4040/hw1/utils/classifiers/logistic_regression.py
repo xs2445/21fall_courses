@@ -64,17 +64,17 @@ def logistic_regression_loss_naive(W, X, y, reg):
     
     # for every sample Xi in X
     for i in range(X.shape[0]):
+        # xi with shape N*1
         temp_x = X[i,:].reshape(-1,1)
         temp_sig = sigmoid(np.dot(np.transpose(W), temp_x))
         # the loss for this iteration
-        loss +=  -1*(y[i]*np.log(temp_sig)+(1-y[i])*np.log(1-temp_sig))
+        loss +=  -(y[i]*np.log(temp_sig)+(1-y[i])*np.log(1-temp_sig))
         # since here we only have one class which is y = 1, don't need to calculate
         # for every classes
         dW += (temp_sig-y[i])*temp_x
     
-    loss /= X.shape[0] 
-    loss += reg*np.linalg.norm(W,ord=2)
-    dW += 2*reg*W
+    loss = loss[0][0]/X.shape[0] +  reg*np.linalg.norm(W,ord=2)
+    dW = dW/X.shape[0] + 2*reg*W
         
     
     #############################################################################
@@ -108,10 +108,14 @@ def logistic_regression_loss_vectorized(W, X, y, reg):
     #                          START OF YOUR CODE                               #
     #############################################################################
     
+    # shape of y is N*1
+    y = y.reshape(-1,1)
+    # shape of sig is N*1
     sig = sigmoid(np.dot(X,W))
+    # loss = reg*|w| - 1/N*(log(sig).T*y + log(1-sig).T*(1-y))
+    loss = reg*np.linalg.norm(W,2) - np.mean((y*np.log(sig) + (1-y)*np.log(1-sig)))
 
-    loss = reg*np.linalg.norm(W,2) - (np.dot(np.transpose(y),np.log(sig))+np.dot(np.transpose(1-y),1-sig))/X.shape[0]
-    dW = np.dot(np.transpose(X), sig-y)
+    dW = np.dot(np.transpose(X), sig-y)/X.shape[0] + 2*reg*W
     
     #############################################################################
     #                          END OF YOUR CODE                                 #

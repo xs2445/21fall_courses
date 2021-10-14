@@ -51,38 +51,45 @@ class BasicClassifier(object):
         for it in range(num_iters):
 
             #########################################################################
-            # TODO:                                            #
-            # Sample batch_size elements from the training data and their        #
-            # corresponding labels to use in this round of gradient descent.      #
-            # Store the data in X_batch and their corresponding labels in        #
-            # y_batch; after sampling X_batch should have shape (batch_size, dim)  #
-            # and y_batch should have shape (batch_size,)                  #
-            #                                                #
-            # Hint: Use np.random.choice to generate indices. Sometimes, random    #
-            # choice will be better than training in order.                 #
+            # TODO:                                                                 #
+            # Sample batch_size elements from the training data and their           #
+            # corresponding labels to use in this round of gradient descent.        #
+            # Store the data in X_batch and their corresponding labels in           #
+            # y_batch; after sampling X_batch should have shape (batch_size, dim)   #
+            # and y_batch should have shape (batch_size,)                           #
+            #                                                                       #
+            # Hint: Use np.random.choice to generate indices. Sometimes, random     #
+            # choice will be better than training in order.                         #
             #########################################################################
             #########################################################################
             #                     START OF YOUR CODE                                #
             #########################################################################
-            
-            print("./utils/classifiers/basic_classifiers.BasicClassifier.train() not implemented!") # delete me
-            
+            choice = np.random.choice(num_train,batch_size,replace=False)
+            X_batch = X[choice,:]
+            y_batch = y[choice]
+
             #########################################################################
             #                       END OF YOUR CODE                                #
             #########################################################################
             
 
             #########################################################################
-            # TODO:                                            #
-            # Update the weights using the gradient and the learning rate.       #
+            # TODO:                                                                 #
+            # Update the weights using the gradient and the learning rate.          #
             #########################################################################
             # evaluate loss and gradient
             #########################################################################
-            #                     START OF YOUR CODE               #
+            #                     START OF YOUR CODE                                #
             #########################################################################
             
-            print("./utils/classifiers/basic_classifiers.BasicClassifier.train() not implemented!") # delete me
-            
+            # calculate the loss and gradient
+            loss, grad = self.loss(X_batch, y_batch, reg)
+            loss_history.append(loss)
+            # update the velocity
+            self.velocity = momentum*self.velocity - learning_rate*grad
+            # update the weight
+            self.W += self.velocity
+
             #########################################################################
             #                    END OF YOUR CODE                  #
             #########################################################################
@@ -108,17 +115,30 @@ class BasicClassifier(object):
                   class.
         """
         #########################################################################
-        # TODO:                                            #
-        # Implement this method. Store the predicted labels in y_pred.       #
+        # TODO:                                                                 #
+        # Implement this method. Store the predicted labels in y_pred.          #
         #########################################################################
         #########################################################################
-        #                     START OF YOUR CODE               #
+        #                     START OF YOUR CODE                                #
         #########################################################################
-        
-        print("./utils/classifiers/basic_classifiers.BasicClassifier.predict() not implemented!") # delete me
-        
+
+        # X: N*D, W: D*C, y: C*N
+        y_prb = np.dot(X,self.W)
+
+        # if it's binary classification
+        if self.W.shape[1]==1:
+            y_pred = np.zeros_like(y_prb)
+            # y=1 for probability >= 0.5
+            y_pred[sigmoid(y_prb)>=0.5]=1
+        else:
+            # y = index of elements with the biggest probability in the same column
+            y_pred = np.argmax(softmax(y_prb), axis=1)  
+
+        y_pred = y_pred.T
+
+
         #########################################################################
-        #                    END OF YOUR CODE                  #
+        #                    END OF YOUR CODE                                   #
         #########################################################################
         
 

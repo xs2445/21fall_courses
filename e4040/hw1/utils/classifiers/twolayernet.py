@@ -53,14 +53,20 @@ class TwoLayerNet(object):
         # TODO: Feedforward                               #
         ###################################################
         
-        print('./utils/classifiers/twolayernet.TwoLayerNet.loss() not implemented!') # delete me
+        layer1, layer2 = self.layer1, self.layer2
+        
+        out1_dense = layer1.feedforward(X)
+        out2_affine = layer2.feedforward(out1_dense)
+        loss, dL_dout2= softmax_loss(out2_affine,y)
+        
         
         ###################################################
         # TODO: Backpropogation,here is just one dense    #
         # layer, it should be pretty easy                 #
         ###################################################      
         
-        print('./utils/classifiers/twolayernet.TwoLayerNet.loss() not implemented!') # delete me
+        dX2 = layer2.backward(dL_dout2)
+        layer1.backward(dX2)
         
         ###################################################
         #            END OF YOUR CODE                     #
@@ -96,8 +102,10 @@ class TwoLayerNet(object):
         #            START OF YOUR CODE                   #
         ###################################################  
         
-        print('./utils/classifiers/twolayernet.TwoLayerNet.step() not implemented!') # delete me
-        
+        for i, grad in enumerate(grads):
+            self.velocities[i] = momentum*self.velocities[i] - learning_rate*grad
+            params[i] += self.velocities[i]
+
         ###################################################
         #            END OF YOUR CODE                     #
         ###################################################
@@ -132,7 +140,15 @@ class TwoLayerNet(object):
         #            START OF YOUR CODE                   # 
         ###################################################  
         
-        print('./utils/classifiers/twolayernet.TwoLayerNet.predict() not implemented!') # delete me
+        # feedforward process
+        out1_dense = layer1.feedforward(X)
+        out2_affine = layer2.feedforward(out1_dense)
+        # softmax to compute the probability
+        out_pred = softmax(out2_affine)
+        # the predicted class
+        predictions = np.argmax(out_pred, axis=1)
+        
+        
         
         ###################################################
         #            END OF YOUR CODE                     #
