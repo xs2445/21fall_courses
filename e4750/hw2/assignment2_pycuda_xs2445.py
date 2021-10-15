@@ -95,14 +95,16 @@ class cudaCipher:
         
         # Record execution time and execute operation.
         start_cpt.record()
+        # s = time.time()
         func_dcp(sentence_d, decrypted_d, np.int32(length), block=BlockDim, grid=GridDim)
+        # e = time.time()
         end_cpt.record()
         
         # Wait for the event to complete
-        end.synchronize()
-        decrypted = decrypted_d.get()
+        end_cpt.synchronize()
         end_alc.record()
         time_cpt = start_cpt.time_till(end_cpt)
+        decrypted = decrypted_d.get()
         time_alc = start_alc.time_till(end_alc)
 
         # Fetch result from device to host
@@ -117,6 +119,7 @@ class cudaCipher:
         # print(type(decrypted))
 
         return decrypted[0], time_cpt
+        # return decrypted[0], (e-s)*1e3
     
     def pyCipher(self, sentence):
         """
@@ -178,6 +181,8 @@ if __name__ == '__main__':
     # post process the string(s) if required
     tc = np.array(tc)
     tp = np.array(tp)
+    # np.save('time_time.npy',tc)
+
 
     # Execution time
     print("CUDA output cracked in ", tc.mean(), " milliseconds per sentence.")
@@ -212,7 +217,7 @@ if __name__ == '__main__':
         plt.xlabel('Sentences')
         plt.ylabel('Processing Time (ms)')
         # plt.show()
-        plt.savefig('comparison_cuda_cpt.jpg')
+        # plt.savefig('comparison_cuda_cpt.jpg')
 
 
 # if __name__ == '__main__':
