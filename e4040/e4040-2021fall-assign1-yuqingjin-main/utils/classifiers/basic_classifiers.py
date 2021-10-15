@@ -40,6 +40,8 @@ class BasicClassifier(object):
             # proposed adjustment for W(D,1)
             if num_classes == 2:
                 self.W = 0.001 * np.random.randn(dim, 1)# Return a sample (or samples) from the “standard normal” distribution
+                # print('11111')
+                # print(self.W.shape)
             else:
                 self.W = 0.001 * np.random.randn(dim, num_classes)
 
@@ -83,11 +85,14 @@ class BasicClassifier(object):
             #########################################################################
             #                     START OF YOUR CODE               #
             #########################################################################
-            
+            print(self.W.shape)
             loss, gradient = self.loss(X_batch, y_batch, reg)
+            print(self.W.shape,'111')
+            print(gradient.shape)
             loss_history.append(loss)
             # w = w - learning_rate * gradient
             self.W = self.W - learning_rate * gradient
+            print(self.W.shape,'222')
             
             #########################################################################
             #                    END OF YOUR CODE                  #
@@ -96,6 +101,7 @@ class BasicClassifier(object):
 
             if verbose and it % 100 == 0:
                 print('iteration %d / %d: loss %f' % (it, num_iters, loss))
+                # print(self.W.shape)
 
         return loss_history
 
@@ -121,7 +127,8 @@ class BasicClassifier(object):
         #                     START OF YOUR CODE               #
         #########################################################################
         score = X.dot(self.W) # score (N,1)
-        #print(score.size)
+        # print(score.shape)
+        # print(self.W.shape)
         #score_1 = 1- score
         #new_score = np.hstack((score,score_1))
         y_pred = (np.argmax(score,axis=1)) #return the index of max value of each column
