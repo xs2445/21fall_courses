@@ -106,6 +106,7 @@ def logistic_regression_loss_vectorized(W, X, y, reg):
     
     # converts a class vector (integers) to binary class matrix.
     y_tran = to_categorical(y) 
+    print(y_tran.shape,'y_tran')
     
     z = np.dot(X, W)
     h = sigmoid(z)
@@ -123,7 +124,8 @@ def logistic_regression_loss_vectorized(W, X, y, reg):
     h22 = h2[:, 1]
     df = np.column_stack((h11, h22))
     dW = np.dot(X.T, df) / N + 2 * reg * W    
-         
+    
+    
         
     #############################################################################
     #                          END OF YOUR CODE                                 #
