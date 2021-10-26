@@ -110,20 +110,13 @@ class MLP(object):
             # TODO: Add batch normalization here          #
             ###############################################
             
+            gamma = params["bn_gamma_{}".format(i)]
+            beta = params["bn_beta_{}".format(i)]
 
             if use_bn:
-                # the mean of each dimensions in the mini-batch
-                temp_mean = np.mean(x,axis=1)
-                bn_params['bn_mean_'.format(i)] = temp_mean
-                # the variance of each dimensions in the mini-batch
-                temp_var = np.var(x,axis=1)
-                bn_params['bn_var_'.format(i)] = temp_var
-                # normalization
-                x = (x + temp_mean)/np.sqrt(temp_var+1e-5)
-                # transformation
-                gamma = params["bn_gamma_{}".format(i)]
-                beta = params["bn_beta_{}".format(i)]
-                x = x * gamma + beta
+                cache_name = "bn_{}".format(i)
+                x, cache[cache_name] = bn_forward(x, gamma, beta, bn_params, 'train')
+
   
 
             ###############################################
@@ -187,7 +180,10 @@ class MLP(object):
             ###############################################
             
             if use_bn:
-                pass            
+                dx, dgamma, dbeta = bn_backward(dx, cache["bn_{}".format(j)])  
+                grads["bn_gamma_{}".format(j)] = dgamma    
+                grads["bn_beta_{}".format(j)] = dbeta   
+
             ###############################################
             # END OF BATCH NORMALIZATION                  #
             ###############################################  
@@ -238,7 +234,9 @@ class MLP(object):
             ###############################################
             
             if use_bn:
-                pass
+                gamma = params["bn_gamma_{}".format(i)]
+                beta = params["bn_beta_{}".format(i)]
+                x, _ = bn_forward(x, gamma, beta, bn_params, "test")
 
             ###############################################
             # END OF BATCH NORMALIZATION                  #

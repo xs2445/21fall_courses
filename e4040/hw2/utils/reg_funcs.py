@@ -117,8 +117,20 @@ def bn_forward(x, gamma, beta, bn_params, mode):
         #         moving_mean and moving_var in the bn_params       #
         #############################################################
         
-        print('./utils/reg_funcs.bn_forward() train mode not implemented!') # delete me
+
         
+        # the mean of each dimensions in the mini-batch
+        mean = np.mean(x,axis=0).reshape((1,-1))
+        # the variance of each dimensions in the mini-batch
+        var = np.var(x,axis=0).reshape((1,-1))
+        # normalization
+        out = (x - mean)/np.sqrt(var + eps)
+        # transformation
+        out = gamma*out + beta    
+
+        moving_mean = decay*moving_mean + (1-decay)*mean
+        moving_var = decay*moving_var + (1-decay)*var
+
         #############################################################
         #                       END OF YOUR CODE                    #
         #############################################################
@@ -129,7 +141,8 @@ def bn_forward(x, gamma, beta, bn_params, mode):
         # TODO: Batch normalization forward test mode               #
         #############################################################
         
-        print('./utils/reg_funcs.bn_forward() test mode not implemented!') # delete me
+        out = (x - moving_mean)/np.sqrt(moving_var + eps)
+        out = gamma*out + beta
 
         #############################################################
         #                       END OF YOUR CODE                    #
