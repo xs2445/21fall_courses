@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
 import pycuda.driver as cuda
@@ -7,6 +8,8 @@ import pycuda.gpuarray as gpuarray
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+from scipy.signal import convolve2d
+
 
 
 class Convolution:
@@ -19,53 +22,68 @@ class Convolution:
 	
 	def getSourceModule(self):
 		# kernel code wrapper
-		kernelwrapper_naive = """
+		kernelwrapper = """
 			#include <stdio.h>
 			__global__ 
-			void conv_gpu_naive(float *N, float *P, float *M, int height, int width, int mask_width){
+			void conv_gpu_naive(const float *N, float *P, const float *M, int height, int width, int mask_width){
 
 				// the coordinate of thread (also coordinate in N or P)
-				int col = blockDim.x * blockIdx.x + threadIdx.x;
-				int row = blockDim.y * blockIdx.y + threadIdx.y;
-				printf("%d  %d\\n", col,row);
+				const int col = blockDim.x * blockIdx.x + threadIdx.x;
+				const int row = blockDim.y * blockIdx.y + threadIdx.y;
+				//printf("%d   %d\\n", row, col);
 
 				// copy to register
-				int mask_w = mask_width;
-				int n_w = width;
-				int n_h = height;
+				const int mask_w = mask_width;
+				const int n_w = width;
+				const int n_h = height;
 				// start point of the kernel
-				int col_start = col - mask_w/2;
-				int row_start = row - mask_w/2;
+				const int col_start = col - (mask_w-1)/2;
+				const int row_start = row - (mask_w-1)/2;
 
-				float p_value = 0.0f;
+				float p_value = 0;
 
-				// for every pixel in mask
+				// in y direction of mask
 				for(int i=0; i<mask_w; i++){
+					// x coordinate in mask
+					int row_mask = mask_w - 1 - i;
 					// x coordinate in N
-					int col_i = col_start + i;
-					// if in the range of N
-					if(col_i>=0 && col_i<n_w){
-						for(int j=0; j<mask_w; j++){
-							// y coordinate in N
-							int row_i = row_start + j;
-							//if in the range of N
-							if(row_i>=0 && row_i<n_h){
-								p_value += N[col_i*n_w+row_i] * M[i*mask_w+j];
-								//int a = col_i*n_w+row_i;
-								//printf("%d\\n", a);
-							}
+					int row_n = row_start + i;
+					
+					if((row_n>=0) && (row_n<n_h)){
+					// in x direction of mask
+					for(int j=0; j<mask_w; j++){
+						// y coordinate in mask
+						int col_mask = mask_w - 1 - j;
+						// y coordinate in N
+						int col_n = col_start + j;
+
+						// if in the range of N
+						//if((row_n>=0) && (row_n<n_h) && (col_n>=0) && (col_n<n_w)){
+						if((col_n>=0) && (col_n<n_w)){
+							p_value += N[row_n*n_w+col_n] * M[row_mask*mask_w+col_mask];
+							//printf("%d  %d\\n", row, col);
 						}
 					}
+					}
 				}
-				P[col*n_w+row] = p_value;
+				/*
+				if((row>=0) && (row<height) && (col>=0) && (col<width)){
+					//printf("%d  %d  %d\\n", row, col, float(N[row*width+col]));
+					//printf("%d\\n", N[1]);
+					printf("%d\\n", N[row*width+col]);
+				}
+				*/
+				P[row*n_w+col] = p_value;
 			}
 		
-		""" # you can either use a string or save the kernel in kernel.cu file and reference it here.
+		""" 
+		# you can either use a string or save the kernel in kernel.cu file and reference it here.
 		# Compile the kernel code when an instance
 		# of this class is made. 
-		return SourceModule(kernelwrapper_naive)
+		return SourceModule(kernelwrapper)
 
-	def getBlockGridDim(self, N, blocksize=32):
+
+	def getBlockGridDim(self, N, blocksize=16):
 		BlockDim = (blocksize, blocksize,1)
 		GridDim = (N.shape[0]//blocksize+1, N.shape[1]//blocksize+1,1)
 		return BlockDim, GridDim
@@ -81,23 +99,40 @@ class Convolution:
 				(test phase) None
 		"""
 		# implement this, note you can change the function signature (arguments and return type)
+		# convert the datatype
+		N = N.astype(np.float32)
+		M = M.astype(np.float32)
+
 		func_conv = self.mod.get_function("conv_gpu_naive")
 		height, width = N.shape
-		print(height,width)
+		# print(height,width)
 		mask_width = M.shape[0]
-		print(mask_width)
+		# print(mask_width)
 		# the result matrix
 		P = np.empty_like(N)
 		# copy to device global memory
 		N_d = gpuarray.to_gpu(N)
 		M_d = gpuarray.to_gpu(M)
 		P_d = gpuarray.to_gpu(P)
+
+		# Allocate memory on device
+		# N_d = cuda.mem_alloc(N.nbytes)
+		# M_d = cuda.mem_alloc(M.nbytes)
+		# P_d = cuda.mem_alloc(P.nbytes)
+		# print(N.shape)
+		# print(N.nbytes/N.shape[0]/N.shape[1])
+		# Copy matrix to memory
+		# cuda.memcpy_htod(N_d, N)
+		# cuda.memcpy_htod(M_d, M)
+
 		# block and grid size
 		BlockDim, GridDim = self.getBlockGridDim(N)
+		print(BlockDim, GridDim)
 
 		func_conv(N_d, P_d, M_d, np.int32(height), np.int32(width), np.int32(mask_width), block=BlockDim, grid = GridDim)
 
 		P = P_d.get()
+		# cuda.memcpy_dtoh(P, P_d)
 
 		return P
 
@@ -116,9 +151,14 @@ class Convolution:
 
 
 if __name__ == "__main__":
-	N = np.ones((32,32),dtype=np.float)
-
-
-	M = np.array(([0,0,0],[0,1,0],[0,0,0]),dtype=np.float)
+	N = np.random.rand(5,5)
+	M = np.random.rand(3,3)
+	# M = np.array([[1,0,0],[0,0,0],[0,0,0]])
+	# print(M)
 	conver = Convolution()
-	P = conver.conv_gpu_naive(N,M)
+	P_cu = conver.conv_gpu_naive(N,M)
+	P_sp = convolve2d(N.astype(np.float32), M.astype(np.float32), mode='same')
+	print(np.allclose(P_cu, P_sp))
+	print(N,'\n')
+	print(P_cu,'\n')
+	print(P_sp)
