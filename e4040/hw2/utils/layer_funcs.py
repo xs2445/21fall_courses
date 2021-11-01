@@ -148,8 +148,38 @@ def conv2d_forward(x, w, b, pad, stride):
     #######################################################################
     #                         TODO: YOUR CODE HERE                        #
     #######################################################################
+
+    # size of input matrix
+    batch, height, width, channels = x.shape
     
-    print('./utils/layer_funcs.conv2d_forward() not implemented!') # delete me
+    # size of kernel
+    filter_height, filter_width, filter_channel, num_filter = w.shape
+        
+    # the size of the output matrix in mode "same"
+    out_height = (height - filter_height + 2*pad)//stride + 1
+    out_width = (width - filter_width + 2*pad)//stride + 1
+    # create result matrix
+    out = np.zeros((batch, out_height, out_width, num_filter))
+    
+    for bat in range(batch):
+        x_padding = np.pad(x[bat,:,:,:], ((pad,pad),(pad,pad),(0,0)), 'constant', constant_values=0)
+        for row_out in range(out_height):
+            row_start = row_out * stride
+            for col_out in range(out_width):
+                col_start = col_out * stride
+                for cha_out in range(num_filter):
+                    result = 0
+                    for cha_in in range(channels):
+                        # the slice of x for convolution
+                        x_slice = x_padding[row_start:row_start+filter_height, col_start:col_start+filter_width, cha_in]
+                        # the kernel
+                        kernel_slice = w[:,:,cha_in,cha_out]
+                        result += np.sum(x_slice * kernel_slice)
+                    # result
+                    out[bat,row_out,col_out,cha_out] = result + b[cha_out]
+    
+    return out
+    
     
     #######################################################################
     #                           END OF YOUR CODE                          #
