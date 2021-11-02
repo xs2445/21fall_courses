@@ -30,7 +30,14 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.__init__() not implemented!') # delete me
+        self.x = x.copy()
+        self.y = y.copy()
+        self.num_of_samples = x.shape[0]
+        self.height = x.shape[1]
+        self.width = x.shape[2]
+        self.channels = x.shape[3]
+        
+        
         
         #######################################################################
         #                                END TODO                             #
@@ -125,7 +132,12 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.show() not implemented!') # delete me
+        for i in range(15):
+            yield images[i,:]
+        
+        fig = plt.figure(figsize=(10,10))
+        
+        ax = fig.add_subplot(4,4,)
         
         #######################################################################
         #                                END TODO                             #
