@@ -32,11 +32,19 @@ class ImageGenerator(object):
         
         self.x = x.copy()
         self.y = y.copy()
-        self.num_of_samples = x.shape[0]
+        self.N = x.shape[0]
         self.height = x.shape[1]
         self.width = x.shape[2]
         self.channels = x.shape[3]
         
+        self.is_bright = False
+        
+        self.is_vertical_flip = False
+        self.is_horizontal_flip = False
+        
+        self.is_translated = False
+        
+        self.is_rotated = False
         
         
         #######################################################################
@@ -57,6 +65,7 @@ class ImageGenerator(object):
         self.x_aug = self.x.copy()
         self.y_aug = self.y.copy()
         self.N_aug = self.N
+        # self.N_aug = 0
     
     
     def create_aug_data(self):
@@ -132,17 +141,26 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        for i in range(15):
-            yield images[i,:]
-        
         fig = plt.figure(figsize=(10,10))
         
-        ax = fig.add_subplot(4,4,)
+        im_gen = self.image_generator(images)
+        
+        for i in range(16):
+            ax = fig.add_subplot(4,4,i+1)
+            ax.imshow(next(im_gen), 'gray')
+            ax.axis('off')
+            
+            
+    def image_generator(self, images, num=16):
+        for i in range(num):
+            yield images[i,:].reshape(28,28)
         
         #######################################################################
         #                                END TODO                             #
         #######################################################################
 
+
+        
 
     def translate(self, shift_height, shift_width):
         """
@@ -162,7 +180,22 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.translate() not implemented!') # delete me
+        if not self.is_translated:
+            self.is_translated = True
+            
+        translated = self.x.copy()        
+        
+        for i in range(translated.shape[0]):
+            for j in range(translated.shape[3]):
+                # for random translation
+                # translation_x = np.random.randint(low=0, high=translated.shape[2])
+                # translation_y = np.random.randint(low=0, high=translated.shape[1])
+                translated[i,:,:,j] = np.roll(translated[i,:,:,j], (shift_height,shift_width), axis=(0,1))
+
+        self.translated = (translated, self.y.copy())
+        self.N_aug += self.N
+        
+        return translated
         
         #######################################################################
         #                                END TODO                             #
@@ -182,7 +215,23 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.rotate() not implemented!') # delete me
+        if not self.is_rotated:
+            self.is_rotated = True
+            
+        rotated = self.x.copy()
+        
+        for i in range(rotated.shape[0]):
+            for j in range(rotated.shape[3]):
+                # for randin ritation
+                # angle = np.random.uniform(0,360)
+                rotated[i,:,:,j] = rotate(rotated[i,:,:,j], angle, reshape=False)
+
+        self.rotated = (rotated, self.y.copy())
+        self.N_aug += self.N
+        
+        return rotated        
+        
+        
         
         #######################################################################
         #                                END TODO                             #
