@@ -46,6 +46,8 @@ class ImageGenerator(object):
         
         self.is_rotated = False
         
+        self.is_add_noise = False
+        
         
         #######################################################################
         #                                END TODO                             #
@@ -125,8 +127,11 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.next_batch_gen() not implemented!') # delete me
-                
+
+        
+        
+        
+        
         #######################################################################
         #                                END TODO                             #
         #######################################################################
@@ -185,12 +190,14 @@ class ImageGenerator(object):
             
         translated = self.x.copy()        
         
-        for i in range(translated.shape[0]):
-            for j in range(translated.shape[3]):
-                # for random translation
-                # translation_x = np.random.randint(low=0, high=translated.shape[2])
-                # translation_y = np.random.randint(low=0, high=translated.shape[1])
-                translated[i,:,:,j] = np.roll(translated[i,:,:,j], (shift_height,shift_width), axis=(0,1))
+        translated = np.roll(translated, (shift_height, shift_width), axis=(1,2))
+        
+        # for i in range(rotated.shape[0]):
+        #     for j in range(rotated.shape[3]):
+        #         # for random translation
+        #         # shift_width_implement = np.random.randint(0,shift_width)
+        #         # shift_height_implement = np.random.randint(0,shift_height)
+        #         translated[i,:,:,j] = np.roll(translated[i,:,:,j], (shift_height, shift_width), axis=(0,1))
 
         self.translated = (translated, self.y.copy())
         self.N_aug += self.N
@@ -220,11 +227,13 @@ class ImageGenerator(object):
             
         rotated = self.x.copy()
         
-        for i in range(rotated.shape[0]):
-            for j in range(rotated.shape[3]):
-                # for randin ritation
-                # angle = np.random.uniform(0,360)
-                rotated[i,:,:,j] = rotate(rotated[i,:,:,j], angle, reshape=False)
+        rotated = rotate(rotated, angle, reshape=False, axes=(1,2))
+        
+        # for i in range(rotated.shape[0]):
+        #     for j in range(rotated.shape[3]):
+        #         # for random ritation
+        #         # angle_implement = np.random.uniform(-angle,angle)
+        #         rotated[i,:,:,j] = rotate(rotated[i,:,:,j], angle, reshape=False, axis=(1,2))
 
         self.rotated = (rotated, self.y.copy())
         self.N_aug += self.N
@@ -261,6 +270,7 @@ class ImageGenerator(object):
     
         self.flipped = (flipped,self.y.copy())
         self.N_aug += self.N
+        
         return flipped
 
     
@@ -278,8 +288,30 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.add_noise() not implemented!') # delete me
+        if not self.is_add_noise:
+            self.is_rotated = True
         
+        num_added = int(self.N * portion)
+        
+        idx = np.random.choice(self.N, num_added)
+        
+        added = self.x[idx,:,:,:].copy()
+        
+        noise = np.random.randint(0, amplitude, size=(self.height, self.width)) - amplitude//2
+        
+        for i in range(added.shape[0]):
+            for j in range(added.shape[3]):
+                # for random noise
+                # noise = np.random.randint(0, amplitude, size=(self.height, self.width)) - amplitude//2
+                added[i,:,:,j] += noise
+                added[i,:,:,j][added[i,:,:,j] > 255] = 255
+                added[i,:,:,j][added[i,:,:,j] < 0] = 0
+
+        self.added = (added, self.y[idx].copy())
+        self.N_aug += num_added
+        
+        return added   
+    
         #######################################################################
         #                                END TODO                             #
         #######################################################################
