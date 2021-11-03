@@ -52,7 +52,11 @@ class MyLeNet_trainer():
         #       from part 3
         #############################################################
         
-        print('./utils/neuralnets/cnn/my_LeNet_trainer.MyLeNet_trainer.batch_train_data() not implemeted!') # delete me
+        train_data.flip('h')
+        train_data.brightness(1.2)
+        train_data.translate(3,5)
+        train_data.rotate(20)
+        train_data.add_noise(0.8,10)
         
         #############################################################
         # END TODO
@@ -93,7 +97,31 @@ class MyLeNet_trainer():
         # hint: use python next feature "next(self.train_data_next_batch)""
         #############################################################
         
-        print('./utils/neuralnets/cnn/my_LeNet_trainer.MyLeNet_trainer.train_epoch() not implemeted!') # delete me
+        
+        # train_ds = tf.data.Dataset.from_tensor_slices((self.X_train, self.y_train)).shuffle(10000).batch(32)
+        train_ds = self.train_data_next_batch
+        # print(train_ds)
+
+        test_ds = tf.data.Dataset.from_tensor_slices((self.X_val, self.y_val)).batch(32)
+        
+        # if epoch == 0:
+        #     self.model.summary()
+            
+        # for images, labels in train_ds:
+        #     self.train_step(images, labels)
+        for images, labels in train_ds:
+            self.train_step(images, labels)
+            
+        with self.train_summary_writer.as_default():
+            tf.summary.scalar('loss', self.train_loss.result(), step=epoch)
+            tf.summary.scalar('accuracy', self.train_accuracy.result(), step=epoch)
+
+        for test_images, test_labels in test_ds:
+            self.test_step(test_images, test_labels)
+            
+        with self.test_summary_writer.as_default():
+            tf.summary.scalar('loss', self.test_loss.result(), step=epoch)
+            tf.summary.scalar('accuracy', self.test_accuracy.result(), step=epoch)       
         
         #############################################################
         # END TODO

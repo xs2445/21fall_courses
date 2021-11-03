@@ -99,6 +99,7 @@ class ImageGenerator(object):
             
         print("Size of training data:{}".format(self.N_aug))
         
+        
     def next_batch_gen(self, batch_size, shuffle=True):
         """
         A python generator function that yields a batch of data infinitely.
@@ -127,10 +128,28 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-
+        self.create_aug_data()
         
+        num_batch = self.N_aug//batch_size
         
+        batch_count = 0
         
+        x_aug = self.x_aug
+        y_aug = self.y_aug
+        
+        while True:
+            if(batch_count < num_batch):
+                batch_count += 1
+                x_batch = x_aug[batch_count*batch_size:(batch_count+1)*batch_size,:,:,:]
+                y_batch = y_aug[batch_count*batch_size:(batch_count+1)*batch_size]
+                yield (x_batch, y_batch)
+            # shuffle
+            else:
+                idx = np.random.choice(self.N, self.N, replace=False)
+                self.x_aug = x_aug[idx]
+                self.y_aug = y_aug[idx]
+                batch_count = 0
+                
         
         #######################################################################
         #                                END TODO                             #
