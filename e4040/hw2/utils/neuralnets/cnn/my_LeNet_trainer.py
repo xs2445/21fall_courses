@@ -98,8 +98,8 @@ class MyLeNet_trainer():
         #############################################################
         
         
-        # train_ds = tf.data.Dataset.from_tensor_slices((self.X_train, self.y_train)).shuffle(10000).batch(32)
-        train_ds = self.train_data_next_batch
+        train_ds = tf.data.Dataset.from_tensor_slices((self.X_train, self.y_train)).shuffle(10000).batch(32)
+        # train_ds = self.train_data_next_batch
         # print(train_ds)
 
         test_ds = tf.data.Dataset.from_tensor_slices((self.X_val, self.y_val)).batch(32)
@@ -112,16 +112,11 @@ class MyLeNet_trainer():
         for images, labels in train_ds:
             self.train_step(images, labels)
             
-        with self.train_summary_writer.as_default():
-            tf.summary.scalar('loss', self.train_loss.result(), step=epoch)
-            tf.summary.scalar('accuracy', self.train_accuracy.result(), step=epoch)
+    
 
-        for test_images, test_labels in test_ds:
-            self.test_step(test_images, test_labels)
-            
-        with self.test_summary_writer.as_default():
-            tf.summary.scalar('loss', self.test_loss.result(), step=epoch)
-            tf.summary.scalar('accuracy', self.test_accuracy.result(), step=epoch)       
+        
+        
+        
         
         #############################################################
         # END TODO
