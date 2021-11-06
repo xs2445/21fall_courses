@@ -11,6 +11,7 @@ __pycache__/*
 #Data      files#
 #################
 data/*
+model/*
 
 ###############
 #Jupyter files#
@@ -22,3 +23,7 @@ data/*
 #log     files#
 ###############
 .logs/*
+
+
+
+
