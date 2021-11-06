@@ -104,18 +104,11 @@ class MyLeNet_trainer():
 
         test_ds = tf.data.Dataset.from_tensor_slices((self.X_val, self.y_val)).batch(32)
         
-        # if epoch == 0:
-        #     self.model.summary()
-            
-        # for images, labels in train_ds:
-        #     self.train_step(images, labels)
+
         for images, labels in train_ds:
             self.train_step(images, labels)
             
-    
 
-        
-        
         
         
         #############################################################
