@@ -30,7 +30,24 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.__init__() not implemented!') # delete me
+        self.x = x.copy()
+        self.y = y.copy()
+        self.N = x.shape[0]
+        self.height = x.shape[1]
+        self.width = x.shape[2]
+        self.channels = x.shape[3]
+        
+        self.is_bright = False
+        
+        self.is_vertical_flip = False
+        self.is_horizontal_flip = False
+        
+        self.is_translated = False
+        
+        self.is_rotated = False
+        
+        self.is_add_noise = False
+        
         
         #######################################################################
         #                                END TODO                             #
@@ -50,6 +67,7 @@ class ImageGenerator(object):
         self.x_aug = self.x.copy()
         self.y_aug = self.y.copy()
         self.N_aug = self.N
+        # self.N_aug = 0
     
     
     def create_aug_data(self):
@@ -81,6 +99,7 @@ class ImageGenerator(object):
             
         print("Size of training data:{}".format(self.N_aug))
         
+        
     def next_batch_gen(self, batch_size, shuffle=True):
         """
         A python generator function that yields a batch of data infinitely.
@@ -109,8 +128,29 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.next_batch_gen() not implemented!') # delete me
+        self.create_aug_data()
+        
+        num_batch = self.N_aug//batch_size
+        
+        batch_count = 0
+        
+        x_aug = self.x_aug
+        y_aug = self.y_aug
+        
+        while True:
+            if(batch_count < num_batch):
+                batch_count += 1
+                x_batch = x_aug[batch_count*batch_size:(batch_count+1)*batch_size,:,:,:]
+                y_batch = y_aug[batch_count*batch_size:(batch_count+1)*batch_size]
+                yield (x_batch, y_batch)
+            # shuffle
+            else:
+                idx = np.random.choice(self.N, self.N, replace=False)
+                self.x_aug = x_aug[idx]
+                self.y_aug = y_aug[idx]
+                batch_count = 0
                 
+        
         #######################################################################
         #                                END TODO                             #
         #######################################################################
@@ -125,12 +165,26 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.show() not implemented!') # delete me
+        fig = plt.figure(figsize=(10,10))
+        
+        im_gen = self.image_generator(images)
+        
+        for i in range(16):
+            ax = fig.add_subplot(4,4,i+1)
+            ax.imshow(next(im_gen), 'gray')
+            ax.axis('off')
+            
+            
+    def image_generator(self, images, num=16):
+        for i in range(num):
+            yield images[i,:].reshape(28,28)
         
         #######################################################################
         #                                END TODO                             #
         #######################################################################
 
+
+        
 
     def translate(self, shift_height, shift_width):
         """
@@ -150,7 +204,24 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.translate() not implemented!') # delete me
+        if not self.is_translated:
+            self.is_translated = True
+            
+        translated = self.x.copy()        
+        
+        translated = np.roll(translated, (shift_height, shift_width), axis=(1,2))
+        
+        # for i in range(rotated.shape[0]):
+        #     for j in range(rotated.shape[3]):
+        #         # for random translation
+        #         # shift_width_implement = np.random.randint(0,shift_width)
+        #         # shift_height_implement = np.random.randint(0,shift_height)
+        #         translated[i,:,:,j] = np.roll(translated[i,:,:,j], (shift_height, shift_width), axis=(0,1))
+
+        self.translated = (translated, self.y.copy())
+        self.N_aug += self.N
+        
+        return translated
         
         #######################################################################
         #                                END TODO                             #
@@ -170,7 +241,25 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.rotate() not implemented!') # delete me
+        if not self.is_rotated:
+            self.is_rotated = True
+            
+        rotated = self.x.copy()
+        
+        rotated = rotate(rotated, angle, reshape=False, axes=(1,2))
+        
+        # for i in range(rotated.shape[0]):
+        #     for j in range(rotated.shape[3]):
+        #         # for random ritation
+        #         # angle_implement = np.random.uniform(-angle,angle)
+        #         rotated[i,:,:,j] = rotate(rotated[i,:,:,j], angle, reshape=False, axis=(1,2))
+
+        self.rotated = (rotated, self.y.copy())
+        self.N_aug += self.N
+        
+        return rotated        
+        
+        
         
         #######################################################################
         #                                END TODO                             #
@@ -200,6 +289,7 @@ class ImageGenerator(object):
     
         self.flipped = (flipped,self.y.copy())
         self.N_aug += self.N
+        
         return flipped
 
     
@@ -217,8 +307,30 @@ class ImageGenerator(object):
         #                         TODO: YOUR CODE HERE                        #
         #######################################################################
         
-        print('./utils/image_generator.ImageGenerator.add_noise() not implemented!') # delete me
+        if not self.is_add_noise:
+            self.is_rotated = True
         
+        num_added = int(self.N * portion)
+        
+        idx = np.random.choice(self.N, num_added)
+        
+        added = self.x[idx,:,:,:].copy()
+        
+        noise = np.random.randint(0, amplitude, size=(self.height, self.width)) - amplitude//2
+        
+        for i in range(added.shape[0]):
+            for j in range(added.shape[3]):
+                # for random noise
+                # noise = np.random.randint(0, amplitude, size=(self.height, self.width)) - amplitude//2
+                added[i,:,:,j] += noise
+                added[i,:,:,j][added[i,:,:,j] > 255] = 255
+                added[i,:,:,j][added[i,:,:,j] < 0] = 0
+
+        self.added = (added, self.y[idx].copy())
+        self.N_aug += num_added
+        
+        return added   
+    
         #######################################################################
         #                                END TODO                             #
         #######################################################################

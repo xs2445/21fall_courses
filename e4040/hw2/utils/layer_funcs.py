@@ -148,8 +148,39 @@ def conv2d_forward(x, w, b, pad, stride):
     #######################################################################
     #                         TODO: YOUR CODE HERE                        #
     #######################################################################
+
+    # size of input matrix
+    batch, height, width, channels = x.shape
     
-    print('./utils/layer_funcs.conv2d_forward() not implemented!') # delete me
+    # size of kernel
+    filter_height, filter_width, filter_channel, num_filter = w.shape
+        
+    # the size of the output matrix in mode "same"
+    out_height = (height - filter_height + 2*pad)//stride + 1
+    out_width = (width - filter_width + 2*pad)//stride + 1
+    # create result matrix
+    out = np.zeros((batch, out_height, out_width, num_filter))
+    
+    for bat in range(batch):
+        x_padding = np.pad(x[bat,:,:,:], ((pad,pad),(pad,pad),(0,0)), 'constant', constant_values=0)
+        for row_out in range(out_height):
+            row_start = row_out * stride
+            for col_out in range(out_width):
+                col_start = col_out * stride
+                for cha_out in range(num_filter):
+                    result = 0
+                    for cha_in in range(channels):
+                        # the slice of x for convolution
+                        x_slice = x_padding[row_start:row_start+filter_height, col_start:col_start+filter_width, cha_in]
+                        # the kernel (here the convolution operation is actually correlation, 
+                        # then the BP will use convolution to implement)
+                        kernel_slice = w[:,:,cha_in,cha_out]
+                        result += np.sum(x_slice * kernel_slice)
+                    # result
+                    out[bat,row_out,col_out,cha_out] = result + b[cha_out]
+    
+    return out
+    
     
     #######################################################################
     #                           END OF YOUR CODE                          #
@@ -183,7 +214,39 @@ def conv2d_backward(d_top, x, w, b, pad, stride):
     #                         TODO: YOUR CODE HERE                        #
     #######################################################################
     
-    print('./utils/layer_funcs.conv2d_backward() not implemented!') # delete me
+    # for derivative of dx, dx = dout * w (mode='same', here '*' represents convolution)
+    
+    # for derivative of dw, dw = x * dout (mode='valid', here '*' represents correlation)
+    # size of input matrix
+    batch, height, width, channels = x.shape
+    
+    # size of kernel
+    filter_height, filter_width, filter_channel, num_filter = w.shape
+    
+    _, out_height, out_width, _ = d_top.shape
+    
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    
+    for cha_in in range(channels):
+        for cha_out in range(num_filter):
+            for bat in range(batch):
+                # convolution of x and dout
+                for row_out in range(filter_height):
+                    row_start = row_out * stride
+                    for col_out in range(filter_width):
+                        col_start = col_out * stride
+                        x_slice = x[bat, row_start:row_start+out_height, col_start:col_start+out_width, cha_in]
+                        dtop_slice = d_top[bat,:,:,cha_out]
+                        dw[row_out,col_out,cha_in,cha_out] += np.sum(x_slice * dtop_slice)
+                    
+    dw /= batch
+    
+    for cha_out in range(num_filter):
+        db[cha_out] = np.sum(d_top[:,:,:,cha_out])
+    # db /= batch
+        
+    return dw, db, dw.shape
     
     #######################################################################
     #                           END OF YOUR CODE                          #
@@ -204,8 +267,29 @@ def avg_pool_forward(x, pool_size, stride):
     #                         TODO: YOUR CODE HERE                        #
     #######################################################################
     
-    print('./utils/layer_funcs.avg_pool_forward() not implemented!') # delete me
+    # size of input matrix
+    batch, height, width, channels = x.shape
+            
+    # the size of the output matrix in mode "same"
+    out_height = (height - pool_size)//stride + 1
+    out_width = (width - pool_size)//stride + 1
+    # create result matrix
+    out = np.zeros((batch, out_height, out_width, channels))
     
+    for bat in range(batch):
+        x_padding = x[bat,:,:,:]
+        for row_out in range(out_height):
+            row_start = row_out * stride
+            for col_out in range(out_width):
+                col_start = col_out * stride
+                for cha_in in range(channels):
+                    # the slice of x for convolution
+                    x_slice = x_padding[row_start:row_start+pool_size, col_start:col_start+pool_size, cha_in]
+                    # result
+                    out[bat,row_out,col_out,cha_in] = np.mean(x_slice)
+    
+    return out
+
     #######################################################################
     #                           END OF YOUR CODE                          #
     #######################################################################
@@ -231,7 +315,24 @@ def avg_pool_backward(dout, x, pool_size, stride):
     #                         TODO: YOUR CODE HERE                        #
     #######################################################################
     
-    print('./utils/layer_funcs.avg_pool_backward() not implemented!') # delete me
+    # size of input matrix
+    batch, height, width, channels = x.shape
+    
+    _, out_height, out_width, _ = dout.shape
+    
+    dx = np.zeros_like(x)
+    
+    for bat in range(batch):
+        for row_out in range(out_height):
+            row_start = row_out * stride
+            for col_out in range(out_width):
+                col_start = col_out * stride
+                for cha_in in range(channels):
+                    # upsampling
+                    dx[bat, row_start:row_start+pool_size, col_start:col_start+pool_size, cha_in] = dout[bat, row_out,col_out, cha_in]/(pool_size**2)
+                    
+    return dx
+    
     
     #######################################################################
     #                           END OF YOUR CODE                          #
