@@ -47,7 +47,7 @@ def epsilon_greedy(value, e, seed = None):
 
     # YOUR CODE ENDS HERE
     ############################
-    return action
+    return action[0]
 
 def action_evaluation(env, gamma, v):
     '''

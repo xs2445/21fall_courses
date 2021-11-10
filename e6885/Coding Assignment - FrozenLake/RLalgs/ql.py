@@ -38,19 +38,20 @@ def QLearning(env, num_episodes, gamma, lr, e):
     ############################
     # YOUR CODE STARTS HERE
 
-
-
-    idx_random = np.random.choice(range(env.nS), size=env.nS)
-    for s in idx_random:
-        for a in range(env.nA):
-            for s_suc in range(len(env.P[s][a])):
-                
-
-
-
-
-
-
+    for i in range(num_episodes):
+        env.isd = [1 / env.nS] * env.nS
+        S = env.reset()
+        if S not in ['5','7','11','12','15']:
+            terminal_flag = False
+            while not terminal_flag:
+                # greedy strategy to choose the action
+                action = epsilon_greedy(Q[S], e, seed = None)
+                # take that action
+                nextstate, r, terminal_flag, _ = env.step(action)
+                # update q value using bellman optimility quation
+                Q[S][action] += lr * (r + gamma * np.max(Q[nextstate]) - Q[S][action])
+                # move to next state
+                S = nextstate
 
     # YOUR CODE ENDS HERE
     ############################
