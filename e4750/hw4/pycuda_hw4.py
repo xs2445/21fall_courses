@@ -166,6 +166,8 @@ class PrefixSum:
         - Y: output array
 		"""
 
+        start = time.time()
+
         Y = np.zeros_like(N)
 
         for i in range(length):
@@ -174,7 +176,7 @@ class PrefixSum:
                 sum_temp += N[j]
             Y[i] = sum_temp
         
-        return Y
+        return Y, (time.time()-start)*1e3
 
     @staticmethod
     def prefix_sum_python2(N, length):
@@ -198,12 +200,15 @@ class PrefixSum:
 		- Y: result
 		- time
 		"""
+        start = cuda.Event()
+        end = cuda.Event()
+        start.record()
 
+        # times for iteration
         if length<=1024:
             n = 1
         else:
             n = math.ceil(math.log(length, 1024))
-        print(n)
 
         Y_d_list = []
         E_d_list = [gpuarray.to_gpu(N)]
@@ -222,7 +227,6 @@ class PrefixSum:
             Y_d_list.append(gpuarray.zeros(gridsize_list[-1], dtype=np.float64))
             # gridsize for this step
             gridsize_list.append((gridsize_list[i]-1)//blocksize+1)
-            print(gridsize_list[-1])
             # list of last elements for this step
             E_d_list.append(gpuarray.zeros(gridsize_list[-1], dtype=np.float64))
 
@@ -236,7 +240,9 @@ class PrefixSum:
 
         Y = Y_d_list[0].get().copy()
         
-        return Y
+        end.record()
+
+        return Y, start.time_till(end)
 
 
     def prefix_sum_gpu_work_efficient(self, N, length):
@@ -250,6 +256,11 @@ class PrefixSum:
 		- Y: result
 		- time
 		"""
+        start = cuda.Event()
+        end = cuda.Event()
+        start.record()
+
+        # times for iteration
         if length<=2048:
             n = 1
         else:
@@ -286,8 +297,9 @@ class PrefixSum:
             cuda.Context.synchronize()
 
         Y = Y_d_list[0].get().copy()
+        end.record()
 
-        return Y
+        return Y, start.time_till(end)
 
 
     @staticmethod
@@ -303,8 +315,8 @@ class PrefixSum:
         - (bool): correct or not
 		"""
 
-        N = np.arange(1,6,step=1)
-        check_ary = np.array([1,3,6,10,15])
+        N = np.array([3,1,7,0,4,1,6,3])
+        check_ary = np.array([3,4,11,11,14,16,22,25])
         Y = PrefixSum.prefix_sum_python(N, N.shape[0])
 
         if np.allclose(Y,check_ary):
@@ -337,5 +349,44 @@ class PrefixSum:
 
 
 
+
+
+
 if __name__ == '__main__':
-    pass
+
+    summer = PrefixSum()
+    
+    length_ary = [128, 2048, 128*2048, 2048*2048, 65535*2048]
+
+    time_python_naive = []
+    time_gpu_ineffcient = []
+    time_gpu_efficient = []
+
+    for length in length_ary:
+        N = np.random.rand(length).astype(np.float64)
+        _, time_p_n = summer.prefix_sum_python(N, length)
+        _, time_g_i = summer.prefix_sum_gpu_naive(N, length)
+        _, time_g_e = summer.prefix_sum_gpu_work_efficient(N, length)
+        time_python_naive.append(time_p_n)
+        time_gpu_ineffcient.append(time_g_i)
+        time_gpu_efficient.append(time_g_e)
+
+    np.save('time_python_naive.npy', np.array(time_python_naive))
+    np.save('time_gpu_ineffcient.npy', np.array(time_gpu_ineffcient))
+    np.save('time_gpu_efficient.npy', np.array(time_gpu_efficient))
+
+    plot_python_naive = np.load('time_python_naive.npy')
+    plot_gpu_inefficient = np.load('time_gpu_ineffcient.npy')
+    plot_gpu_efficient = np.load('time_gpu_efficient.npy')
+
+    plt.figure()
+    plt.plot(plot_python_naive, label='python_naive')
+    plt.plot(plot_gpu_inefficient, label='gpu_inefficient')
+    plt.plot(plot_gpu_efficient, label='gpu_efficient')
+    plt.legend()
+    plt.grid()
+    plt.xlabel('Length of vectors')
+    plt.ylabel('Processing time (ms)')
+    plt.title('Comparison of different scan methods')
+    plt.savefig('comparison.png')
+    # plt.show()
