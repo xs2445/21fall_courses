@@ -241,6 +241,7 @@ class PrefixSum:
         Y = Y_d_list[0].get().copy()
         
         end.record()
+        end.synchronize()
 
         return Y, start.time_till(end)
 
@@ -298,6 +299,7 @@ class PrefixSum:
 
         Y = Y_d_list[0].get().copy()
         end.record()
+        end.synchronize()
 
         return Y, start.time_till(end)
 
@@ -370,6 +372,7 @@ if __name__ == '__main__':
         time_python_naive.append(time_p_n)
         time_gpu_ineffcient.append(time_g_i)
         time_gpu_efficient.append(time_g_e)
+        print('Finished scan with length: %d' % (length))
 
     np.save('time_python_naive.npy', np.array(time_python_naive))
     np.save('time_gpu_ineffcient.npy', np.array(time_gpu_ineffcient))
