@@ -39,6 +39,27 @@ def SARSA(env, num_episodes, gamma, lr, e):
     ############################
     # YOUR CODE STARTS HERE
 
+    for i in range(num_episodes):
+            env.isd = [1 / env.nS] * env.nS
+            S = env.reset()
+            # current action
+            action = epsilon_greedy(Q[S], e, seed = None)
+            if S not in ['5','7','11','12','15']:
+                terminal_flag = False
+                while not terminal_flag:
+                    # take the current action
+                    nextstate, r, terminal_flag, _ = env.step(action)
+                    # choose next action using greedy strategy
+                    action_next = epsilon_greedy(Q[nextstate], e, seed = None)
+                    # update q value following the action
+                    Q[S][action] += lr * (r + gamma * Q[nextstate][action_next] - Q[S][action])
+                    S = nextstate
+                    action = action_next
+ 
+
+
+
+
     # YOUR CODE ENDS HERE
     ############################
 
