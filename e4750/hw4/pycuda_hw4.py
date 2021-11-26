@@ -180,13 +180,26 @@ class PrefixSum:
 
     @staticmethod
     def prefix_sum_python2(N, length):
+        """
+		another naive prefix sum serial implementation
+        yi = yi-1 + xi
+
+		params:
+		- N: input array
+
+		return:
+        - Y: output array
+		"""
+
+        start = time.time()
+
         Y = np.zeros_like(N)
 
         Y[0] = N[0]
         for i in range(length-1):
             Y[i+1] = Y[i] + N[i+1]
 
-        return Y
+        return Y, (time.time()-start)*1e3
 
 
     def prefix_sum_gpu_naive(self, N, length):
@@ -356,27 +369,27 @@ class PrefixSum:
 
 if __name__ == '__main__':
 
-    summer = PrefixSum()
+    # summer = PrefixSum()
     
-    length_ary = [128, 2048, 128*2048, 2048*2048, 65535*2048]
+    # length_ary = [128, 2048, 128*2048, 2048*2048, 65535*2048]
 
-    time_python_naive = []
-    time_gpu_ineffcient = []
-    time_gpu_efficient = []
+    # time_python_naive = []
+    # time_gpu_ineffcient = []
+    # time_gpu_efficient = []
 
-    for length in length_ary:
-        N = np.random.rand(length).astype(np.float64)
-        _, time_p_n = summer.prefix_sum_python(N, length)
-        _, time_g_i = summer.prefix_sum_gpu_naive(N, length)
-        _, time_g_e = summer.prefix_sum_gpu_work_efficient(N, length)
-        time_python_naive.append(time_p_n)
-        time_gpu_ineffcient.append(time_g_i)
-        time_gpu_efficient.append(time_g_e)
-        print('Finished scan with length: %d' % (length))
+    # for length in length_ary:
+    #     N = np.random.rand(length).astype(np.float64)
+    #     _, time_p_n = summer.prefix_sum_python2(N, length)
+    #     _, time_g_i = summer.prefix_sum_gpu_naive(N, length)
+    #     _, time_g_e = summer.prefix_sum_gpu_work_efficient(N, length)
+    #     time_python_naive.append(time_p_n)
+    #     time_gpu_ineffcient.append(time_g_i)
+    #     time_gpu_efficient.append(time_g_e)
+    #     print('Finished scan with length: %d' % (length))
 
-    np.save('time_python_naive.npy', np.array(time_python_naive))
-    np.save('time_gpu_ineffcient.npy', np.array(time_gpu_ineffcient))
-    np.save('time_gpu_efficient.npy', np.array(time_gpu_efficient))
+    # np.save('time_python_naive.npy', np.array(time_python_naive))
+    # np.save('time_gpu_ineffcient.npy', np.array(time_gpu_ineffcient))
+    # np.save('time_gpu_efficient.npy', np.array(time_gpu_efficient))
 
     plot_python_naive = np.load('time_python_naive.npy')
     plot_gpu_inefficient = np.load('time_gpu_ineffcient.npy')
@@ -391,5 +404,5 @@ if __name__ == '__main__':
     plt.xlabel('Length of vectors')
     plt.ylabel('Processing time (ms)')
     plt.title('Comparison of different scan methods')
-    plt.savefig('comparison.png')
-    # plt.show()
+    # plt.savefig('comparison.png')
+    plt.show()
