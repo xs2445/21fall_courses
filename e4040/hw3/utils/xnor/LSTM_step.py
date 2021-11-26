@@ -23,7 +23,9 @@ def LSTM_step(cell_inputs, cell_states, kernel, recurrent_kernel, bias):
     # params                                          #
     ###################################################
     
-    print('./utils/LSTM_step.py not implemented!') # delete me
+    cell_inputs
+    
+    
     
     ###################################################
     # END TODO                                        #
