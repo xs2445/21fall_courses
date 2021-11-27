@@ -1,82 +1,85 @@
-import pycuda.autoinit
-from pycuda.compiler import SourceModule
-import pycuda.driver as cuda
-import pycuda.gpuarray as gpuarray
+import pyopencl as cl
 import numpy as np
 import time
-import matplotlib.pyplot as plt
+import pyopencl.array as array
 import math
+import matplotlib.pyplot as plt
 
 
 
 class PrefixSum:
     def __init__(self):
-        self.mod = None
-        self.getSourceModule()
+        """
+    Attributes for instance of clModule
+    Includes OpenCL context, command queue, kernel code.
+    """
+        # Get platform and device property
+        NAME = 'NVIDIA CUDA'
+        platforms = cl.get_platforms()
+        devs = None
+        for platform in platforms:
+            if platform.name == NAME:
+                devs = platform.get_devices()
 
+        # Create Context:
+        self.ctx = cl.Context(devs)
 
-    def getSourceModule(self):
-        kernelwrapper = """
-        //------------------------------------------------------------------------------
-        // predefined parameters
-        #define SECTION_SIZE 1024
+        # Setup Command Queue:
+        self.queue = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
 
-        //------------------------------------------------------------------------------
-        // Kogge-Stone scan kernel for arbitrary input length, naive-gpu
-        // phase1&2 for inefficient scan
-
-        __global__
-        void KoggeStone_end(double *X, double *Y, double *end_ary, const int InputSize){
+        kernel_code = """
+         #define SECTION_SIZE 1024
+         
+        //-------------naive kernel phase1 start--------------------------------------
+         // this kernel is used for calculating prefix of sections & prefix of S
+        __kernel void KoggeStone_end(__global double *X, __global double *Y, __global double *end_ary, const int InputSize){
             
-            // copy the input array to shared memory
-            __shared__ double XY[SECTION_SIZE];
+            const int tx = get_local_id(0);
+            const int bx = get_group_id(0);
+            const unsigned long int i = get_global_id(0);
 
-            const int tx = threadIdx.x;
-            const unsigned long int i = blockDim.x*blockIdx.x + tx;
-
+            __local double XY[SECTION_SIZE];
+            
             if(i<InputSize){
                 XY[tx] = X[i];
             }
 
             // iterative scan on XY
             float temp = 0.0f;
-            for(unsigned int stride = 1; stride < blockDim.x; stride*=2){
+            for(unsigned int stride = 1; stride < SECTION_SIZE; stride*=2){
                 temp = 0;
-                __syncthreads();
+                barrier(CLK_LOCAL_MEM_FENCE);
                 if(tx >= stride) temp = XY[tx-stride];
-                __syncthreads();
+                barrier(CLK_LOCAL_MEM_FENCE);
                 XY[tx] += temp;
                 //if(tx >= stride) XY[tx] += XY[tx-stride];
             }
-            __syncthreads();
+            barrier(CLK_LOCAL_MEM_FENCE);
         
             if(i<InputSize) Y[i] = XY[tx];
-            //Y[i] = XY[tx];
 
             // copy the last element of the block
             if(tx == SECTION_SIZE-1){
-                end_ary[blockIdx.x] = XY[tx];
+                end_ary[bx] = XY[tx];
             }
             else if(i == InputSize-1){
-                end_ary[blockIdx.x] = XY[tx];
+                end_ary[bx] = XY[tx];
             }
-
         }
-
-
+        
         //------------------------------------------------------------------------------
         // phase 3 of inefficient scan
-
-        __global__
-        void phase3_koggestone(double *Y, double *S, const int InputSize){
-
+        
+        __kernel void phase3_koggestone(__global double *Y, __global double *S, const int InputSize)
+        // double *in = out from last kernel; S = S;
+        {
             // current position in Y
-            const unsigned long int y = blockDim.x*blockIdx.x + threadIdx.x;
+            const unsigned long int y = get_global_id(0);
 
-            if(blockIdx.x > 0 && y<InputSize) Y[y] += S[blockIdx.x-1];
+            if(get_group_id(0) > 0 && y<InputSize) Y[y] += S[get_group_id(0)-1];
         }
-
-
+        
+        
         //------------------------------------------------------------------------------
 
         #define SECTION_SIZE_2 SECTION_SIZE*2
@@ -84,24 +87,23 @@ class PrefixSum:
         //------------------------------------------------------------------------------
         // Brent-Kung scan kernel phase1&2 (efficient scan)
         // output two array Y: pre-fix sum, end_ary: last elements of each blocok.
-
-        __global__ 
-        void BrentKung_end(double *X, double *Y,  double *end_ary, const int InputSize){
-
-            __shared__ double XY[SECTION_SIZE_2];
+        
+        __kernel void BrentKung_end(__global double *X, __global double *Y, __global double *end_ary, const int InputSize)
+        {
+            __local double XY[SECTION_SIZE_2];
 
             // current position in block
-            const unsigned int tx = threadIdx.x;
+            const unsigned int tx = get_local_id(0);
             // current position in X
-            const unsigned long int i = 2*blockDim.x*blockIdx.x + tx;
+            const unsigned long int i = 2*get_local_size(0)*get_group_id(0) + tx;
 
             // each thread copy 2 element to shared memory
             if(i<InputSize) XY[tx] = X[i];
-            if(i+blockDim.x < InputSize) XY[tx+blockDim.x] = X[i+blockDim.x];
-
+            if(i+SECTION_SIZE < InputSize) XY[tx+SECTION_SIZE] = X[i+SECTION_SIZE];
+            
             // reduction tree
-            for(unsigned int stride=1; stride <= blockDim.x; stride*=2){
-                __syncthreads();
+            for(unsigned int stride=1; stride <= SECTION_SIZE; stride*=2){
+                barrier(CLK_LOCAL_MEM_FENCE);
                 int index = (tx+1)*2*stride-1;
                 if(index<SECTION_SIZE_2) XY[index] += XY[index - stride];                 
             }
@@ -109,50 +111,46 @@ class PrefixSum:
             // distribution tree 
             for(unsigned int stride=SECTION_SIZE_2/4; stride > 0; stride /=2){
                 int index = (tx+1)*2*stride-1;
-                __syncthreads();
+                barrier(CLK_LOCAL_MEM_FENCE);
                 if(index+stride < SECTION_SIZE_2) XY[index+stride] += XY[index];
             }
 
-            __syncthreads();
+            barrier(CLK_LOCAL_MEM_FENCE);
 
             // output the last element of each block
-            if(((tx+1) == SECTION_SIZE) && (i+blockDim.x < InputSize)){
-                end_ary[blockIdx.x] = XY[tx+blockDim.x];
+            if(((tx+1) == SECTION_SIZE) && (i+SECTION_SIZE < InputSize)){
+                end_ary[get_group_id(0)] = XY[tx+SECTION_SIZE];
             }
             else if((i+1) == InputSize){
-                end_ary[blockIdx.x] = XY[tx];
+                end_ary[get_group_id(0)] = XY[tx];
             }
-            else if((i+blockDim.x+1) == InputSize){
-                end_ary[blockIdx.x] = XY[tx+blockDim.x];
+            else if((i+SECTION_SIZE+1) == InputSize){
+                end_ary[get_group_id(0)] = XY[tx+SECTION_SIZE];
             }
             
             // output each block
             if(i<InputSize) Y[i] = XY[tx];
-            if(i+blockDim.x < InputSize) Y[i+blockDim.x] = XY[tx+blockDim.x];
-            
-        }
+            if(i+SECTION_SIZE < InputSize) Y[i+SECTION_SIZE] = XY[tx+SECTION_SIZE];
+           
+        }            
 
         //------------------------------------------------------------------------------
         // phase 3 of efficient scan
 
-        __global__
-        void phase3_brentkung(double *Y, double *S, const int InputSize){
 
+         __kernel void phase3_brentkung(__global double *Y, __global double *S, const int InputSize)
+         {
             // current position in Y
-            const unsigned long int y = 2*(blockDim.x*blockIdx.x) + threadIdx.x;
+            const unsigned long int y = 2*(get_local_size(0)*get_group_id(0)) + get_local_id(0);
 
-            if(2*blockIdx.x > 0 && y<InputSize) Y[y] += S[blockIdx.x-1];
+            if(2*get_group_id(0) > 0 && y<InputSize) Y[y] += S[get_group_id(0)-1];
             
-            if(2*blockIdx.x > 0 && y+blockDim.x < InputSize) Y[y+blockDim.x] += S[blockIdx.x-1];
-
-        }
-
+            if(2*get_group_id(0) > 0 && y+SECTION_SIZE < InputSize) Y[y+SECTION_SIZE] += S[get_group_id(0)-1];
+         }
         """
-		
-        mod = SourceModule(kernelwrapper)
 
-        self.mod = mod
-    
+        self.prg = cl.Program(self.ctx, kernel_code).build()
+
     @staticmethod
     def prefix_sum_python(N, length):
         """
@@ -201,8 +199,7 @@ class PrefixSum:
 
         return Y, (time.time()-start)*1e3
 
-
-    def prefix_sum_gpu_naive(self, N, length):
+    def prefix_sum_gpu_naive(self, arrayin, length):
         """
         Prefix_sum using Kogge-Stone scan kernel
 
@@ -213,50 +210,51 @@ class PrefixSum:
 		- Y: result
 		- time
 		"""
-        start = cuda.Event()
-        end = cuda.Event()
-        start.record()
+        t_start = time.time()
 
-        # times for iteration
         if length<=1024:
             n = 1
         else:
             n = math.ceil(math.log(length, 1024))
 
         Y_d_list = []
-        E_d_list = [gpuarray.to_gpu(N)]
+        E_d_list = [array.to_device(self.queue, arrayin)]
 
         blocksize = 1024
-        BlockDim = (blocksize, 1, 1)
         gridsize_list = [length]
 
-        func_red = self.mod.get_function("KoggeStone_end")
-        func_dis = self.mod.get_function("phase3_koggestone")
+        func_red = self.prg.KoggeStone_end
+        func_dis = self.prg.phase3_koggestone
 
-        # reduction
         for i in range(n):
-
             # memory allocation for Y
-            Y_d_list.append(gpuarray.zeros(gridsize_list[-1], dtype=np.float64))
+            Y_d_list.append(array.zeros(self.queue, gridsize_list[-1], dtype=np.float64))
             # gridsize for this step
-            gridsize_list.append((gridsize_list[i]-1)//blocksize+1)
+            gridsize_list.append(((gridsize_list[i]-1)//blocksize+1)*blocksize)
             # list of last elements for this step
-            E_d_list.append(gpuarray.zeros(gridsize_list[-1], dtype=np.float64))
+            E_d_list.append(array.zeros(self.queue, gridsize_list[-1], dtype=np.float64))
 
-            func_red(E_d_list[i], Y_d_list[i], E_d_list[-1], np.int32(gridsize_list[i]), block=BlockDim, grid=(gridsize_list[-1],1,1))
-            cuda.Context.synchronize()
+            event_red = func_red(
+                self.queue, 
+                (gridsize_list[-1],1,1), (blocksize,1,1),
+                E_d_list[i].data, Y_d_list[i].data, E_d_list[-1].data, np.int32(gridsize_list[i])
+            )
+            event_red.wait()
 
-        # distribution
+
         for i in range(n-1)[::-1]:
-            func_dis(Y_d_list[i], Y_d_list[i+1], np.int32(gridsize_list[i]), block=BlockDim, grid=(gridsize_list[i+1],1,1))
-            cuda.Context.synchronize()
+            event_dist = func_dis(
+                self.queue, 
+                (gridsize_list[i+1],1,1), (blocksize,1,1), 
+                Y_d_list[i].data, Y_d_list[i+1].data, np.int32(gridsize_list[i])
+            )
+            event_dist.wait()
 
-        Y = Y_d_list[0].get().copy()
-        
-        end.record()
-        end.synchronize()
+        Y = Y_d_list[0].get()
 
-        return Y, start.time_till(end)
+        t_end = time.time()
+
+        return Y, (t_end-t_start)*1e3
 
 
     def prefix_sum_gpu_work_efficient(self, N, length):
@@ -270,51 +268,51 @@ class PrefixSum:
 		- Y: result
 		- time
 		"""
-        start = cuda.Event()
-        end = cuda.Event()
-        start.record()
+        t_start = time.time()
 
-        # times for iteration
         if length<=2048:
             n = 1
         else:
             n = math.ceil(math.log(length, 2048))
 
         Y_d_list = []
-        E_d_list = [gpuarray.to_gpu(N)]
+        E_d_list = [array.to_device(self.queue, N)]
 
         blocksize = 1024
-        BlockDim = (blocksize, 1, 1)
         gridsize_list = [length]
 
-        # function of reduction kernel
-        func_red = self.mod.get_function("BrentKung_end")
-        # function of distribution kernel
-        func_dis = self.mod.get_function("phase3_brentkung")
+        func_red = self.prg.BrentKung_end
+        func_dis = self.prg.phase3_brentkung
 
-        # reduction
         for i in range(n):
-
             # memory allocation for Y
-            Y_d_list.append(gpuarray.zeros(gridsize_list[-1], dtype=np.float64))
+            Y_d_list.append(array.zeros(self.queue, gridsize_list[-1], dtype=np.float64))
             # gridsize for this step
-            gridsize_list.append((gridsize_list[i]-1)//(blocksize*2)+1)
+            gridsize_list.append(((gridsize_list[i]-1)//blocksize+1)*blocksize)
             # list of last elements for this step
-            E_d_list.append(gpuarray.zeros(gridsize_list[-1], dtype=np.float64))
+            E_d_list.append(array.zeros(self.queue, gridsize_list[-1], dtype=np.float64))
 
-            func_red(E_d_list[i], Y_d_list[i], E_d_list[-1], np.int32(gridsize_list[i]), block=BlockDim, grid=(gridsize_list[-1],1,1))
-            cuda.Context.synchronize()
+            event_red = func_red(
+                self.queue, 
+                (gridsize_list[-1],1,1), (blocksize,1,1),
+                E_d_list[i].data, Y_d_list[i].data, E_d_list[-1].data, np.int32(gridsize_list[i])
+            )
+            event_red.wait()
 
-        # distribution
+
         for i in range(n-1)[::-1]:
-            func_dis(Y_d_list[i], Y_d_list[i+1], np.int32(gridsize_list[i]), block=BlockDim, grid=(gridsize_list[i+1],1,1))
-            cuda.Context.synchronize()
+            event_dist = func_dis(
+                self.queue, 
+                (gridsize_list[i+1],1,1), (blocksize,1,1), 
+                Y_d_list[i].data, Y_d_list[i+1].data, np.int32(gridsize_list[i])
+            )
+            event_dist.wait()
 
-        Y = Y_d_list[0].get().copy()
-        end.record()
-        end.synchronize()
+        Y = Y_d_list[0].get()
 
-        return Y, start.time_till(end)
+        t_end = time.time()
+
+        return Y, (t_end-t_start)*1e3
 
 
     @staticmethod
@@ -351,9 +349,7 @@ class PrefixSum:
                 print('Incorrect!')
                 return False
             else:
-                return False           
-
-
+                return False   
 
 
 if __name__ == '__main__':
@@ -376,13 +372,13 @@ if __name__ == '__main__':
     #     time_gpu_efficient.append(time_g_e)
     #     print('Finished scan with length: %d' % (length))
 
-    # np.save('time_python_naive.npy', np.array(time_python_naive))
-    # np.save('time_gpu_ineffcient.npy', np.array(time_gpu_ineffcient))
-    # np.save('time_gpu_efficient.npy', np.array(time_gpu_efficient))
+    # np.save('time_python_naive_cl.npy', np.array(time_python_naive))
+    # np.save('time_gpu_ineffcient_cl.npy', np.array(time_gpu_ineffcient))
+    # np.save('time_gpu_efficient_cl.npy', np.array(time_gpu_efficient))
 
-    plot_python_naive = np.load('time_python_naive.npy')
-    plot_gpu_inefficient = np.load('time_gpu_ineffcient.npy')
-    plot_gpu_efficient = np.load('time_gpu_efficient.npy')
+    plot_python_naive = np.load('time_python_naive_cl.npy')
+    plot_gpu_inefficient = np.load('time_gpu_ineffcient_cl.npy')
+    plot_gpu_efficient = np.load('time_gpu_efficient_cl.npy')
 
     plt.figure()
     plt.plot(plot_python_naive, label='python_naive')
@@ -393,6 +389,6 @@ if __name__ == '__main__':
     plt.xticks([0,1,2,3,4], length_ary)
     plt.xlabel('Length of vectors')
     plt.ylabel('Processing time (ms)')
-    plt.title('Comparison of different scan methods (PyCUDA)')
-    plt.savefig('comparison.png')
+    plt.title('Comparison of different scan methods (OpenCL)')
+    plt.savefig('comparison_opencl.png')
     # plt.show()
