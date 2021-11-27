@@ -23,8 +23,19 @@ def LSTM_step(cell_inputs, cell_states, kernel, recurrent_kernel, bias):
     # params                                          #
     ###################################################
     
-    cell_inputs
+    h,c = cell_states
+
+    res = tf.tensordot(h, recurrent_kernel, axes = 1) + tf.tensordot(cell_inputs, kernel, axes = 1) + bias
+
+    input_gate = tf.keras.activations.sigmoid(res[:,:64])
+    forget_gate = tf.keras.activations.sigmoid(res[:,64:128])
+    C_t_hat = tf.keras.activations.tanh(res[:,128:192])
+    output_gate = tf.keras.activations.sigmoid(res[:,192:])
+
+    C_t = forget_gate * c + input_gate * C_t_hat
+    h_t = tf.keras.activations.tanh(C_t) * output_gate
     
+    return h_t, [h_t, C_t]    
     
     
     ###################################################
